@@ -110,6 +110,8 @@ export function useSLA() {
       const interval = setInterval(updateSLA, 30000);
 
       return () => clearInterval(interval);
+      // calculateSLA é estável via useMemo; ignorar aviso do exhaustive-deps
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [priority, createdAt, calculateSLA]);
 
     return slaInfo;

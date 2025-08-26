@@ -97,6 +97,22 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
     }
   }, [statusFilter, orders.length, supabase]);
 
+  // Configurar polling como fallback
+  const setupPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+    }
+
+    setConnectionStatus('fallback');
+    pollingRef.current = setInterval(() => {
+      // Só fazer polling se não houver atividade recente do realtime
+      const timeSinceLastFetch = Date.now() - lastFetchRef.current;
+      if (timeSinceLastFetch > pollingInterval / 2) {
+        loadOrders();
+      }
+    }, pollingInterval);
+  }, [loadOrders, pollingInterval]);
+
   // Configurar realtime
   const setupRealtime = useCallback(() => {
     if (channelRef.current) {
@@ -143,23 +159,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
           }
         }
       });
-  }, [loadOrders, enableFallback, supabase]);
-
-  // Configurar polling como fallback
-  const setupPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-    }
-
-    setConnectionStatus('fallback');
-    pollingRef.current = setInterval(() => {
-      // Só fazer polling se não houver atividade recente do realtime
-      const timeSinceLastFetch = Date.now() - lastFetchRef.current;
-      if (timeSinceLastFetch > pollingInterval / 2) {
-        loadOrders();
-      }
-    }, pollingInterval);
-  }, [loadOrders, pollingInterval]);
+  }, [loadOrders, enableFallback, supabase, setupPolling]);
 
   // Forçar refresh manual
   const refresh = useCallback(() => {
@@ -192,12 +192,12 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
         clearInterval(pollingRef.current);
       }
     };
-  }, []);
+  }, [loadOrders, setupRealtime, supabase]);
 
   // Atualizar quando filtros mudarem
   useEffect(() => {
     loadOrders();
-  }, [statusFilter]);
+  }, [statusFilter, loadOrders]);
 
   return {
     orders,
