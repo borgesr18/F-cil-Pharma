@@ -1,9 +1,9 @@
 'use client';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 import type { Database, Priority } from '@/lib/supabase/types';
 
-const supabase = createClientComponentClient<Database>();
+const supabase = createClient();
 
 export default function SalaPage() {
   const [kits, setKits] = useState<Database['public']['Tables']['kits']['Row'][]>([]);

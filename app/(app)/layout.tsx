@@ -1,11 +1,10 @@
 import '../globals.css';
 import Link from 'next/link';
-import { cookies } from 'next/headers';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createServerSupabase } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createServerComponentClient<Database>({ cookies });
+  const supabase = createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return (
@@ -22,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <nav className="flex gap-3 text-sm">
           <Link href="/sala">Sala</Link>
           <Link href="/farmacia">Farmácia</Link>
+          <Link href="/admin">Admin</Link>
         </nav>
       </header>
       <main className="p-4">{children}</main>

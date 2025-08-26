@@ -1,10 +1,9 @@
-import { cookies } from 'next/headers';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import type { Database } from '@/lib/supabase/types';
 
 export default async function DashboardPage() {
-  const supabase = createServerComponentClient<Database>({ cookies });
+  const supabase = createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', user!.id).single();
 
