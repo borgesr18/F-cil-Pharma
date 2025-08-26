@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
 
@@ -37,11 +37,7 @@ export default function AdminPage() {
   
   const supabase = createClient();
 
-  useEffect(() => {
-    loadData();
-  }, [activeTab]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -73,7 +69,11 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, supabase]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSave = async (item: any, isNew: boolean = false) => {
     setLoading(true);
