@@ -8,6 +8,20 @@ import { AlertTriangle, Clock, User, CheckCircle2, Wifi, WifiOff, RotateCcw } fr
 
 const ORDERED: OrderStatus[] = ['submitted','picking','checking','ready','delivered'];
 
+function getStatusLabel(status: OrderStatus): string {
+  const labels: Record<OrderStatus, string> = {
+    draft: 'Rascunho',
+    submitted: 'Enviados',
+    picking: 'Separando',
+    checking: 'Em Análise',
+    ready: 'Prontos',
+    delivered: 'Entregues',
+    received: 'Recebidos',
+    cancelled: 'Cancelados'
+  };
+  return labels[status] || status;
+}
+
 export default function FarmaciaPage() {
   const [mavCheckNotes, setMavCheckNotes] = useState<Record<number, string>>({});
   const [showMAVModal, setShowMAVModal] = useState<number | null>(null);
@@ -175,7 +189,7 @@ export default function FarmaciaPage() {
           <div key={st} className="card animate-slide-up">
             <div className="card-header">
               <h3 className="font-semibold text-gray-900 uppercase tracking-wide text-sm">
-                {st === 'submitted' ? 'Enviados' : st === 'checking' ? 'Em Análise' : 'Prontos'}
+                {getStatusLabel(st)}
               </h3>
             </div>
             <div className="space-y-4">

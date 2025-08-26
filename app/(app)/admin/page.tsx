@@ -146,7 +146,6 @@ export default function AdminPage() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nome</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
@@ -203,7 +202,6 @@ export default function AdminPage() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nome</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Unidade</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">MAV</th>
@@ -262,8 +260,6 @@ export default function AdminPage() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Chave</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nome</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
@@ -381,7 +377,6 @@ function RoomRow({ room, isEditing, onEdit, onSave, onCancel, onDelete, loading 
   if (isEditing) {
     return (
       <tr className="bg-blue-50 border-l-4 border-blue-500">
-        <td className="px-6 py-4 text-sm font-medium text-gray-900">{room.id}</td>
         <td className="px-6 py-4">
           <input
             type="text"
@@ -427,7 +422,6 @@ function RoomRow({ room, isEditing, onEdit, onSave, onCancel, onDelete, loading 
   
   return (
     <tr className="hover:bg-gray-50 transition-colors duration-200">
-      <td className="px-6 py-4 text-sm font-medium text-gray-900">{room.id}</td>
       <td className="px-6 py-4 text-sm text-gray-900 font-medium">{room.name}</td>
       <td className="px-6 py-4">
         <span className={`status-badge ${
@@ -466,7 +460,6 @@ function MedRow({ med, isEditing, onEdit, onSave, onCancel, onDelete, loading }:
   if (isEditing) {
     return (
       <tr className="bg-blue-50 border-l-4 border-blue-500">
-        <td className="px-6 py-4 text-sm font-medium text-gray-900">{med.id}</td>
         <td className="px-6 py-4">
           <input
             type="text"
@@ -531,7 +524,6 @@ function MedRow({ med, isEditing, onEdit, onSave, onCancel, onDelete, loading }:
   
   return (
     <tr className="hover:bg-gray-50 transition-colors duration-200">
-      <td className="px-6 py-4 text-sm font-medium text-gray-900">{med.id}</td>
       <td className="px-6 py-4 text-sm text-gray-900 font-medium">{med.name}</td>
       <td className="px-6 py-4 text-sm text-gray-600">{med.unit}</td>
       <td className="px-6 py-4">
@@ -578,16 +570,6 @@ function KitRow({ kit, isEditing, onEdit, onSave, onCancel, onDelete, loading }:
   if (isEditing) {
     return (
       <tr className="bg-blue-50 border-l-4 border-blue-500">
-        <td className="px-6 py-4 text-sm font-medium text-gray-900">{kit.id}</td>
-        <td className="px-6 py-4">
-          <input
-            type="text"
-            value={editData.key}
-            onChange={(e) => setEditData({ ...editData, key: e.target.value })}
-            className="input-field w-full"
-            placeholder="Chave do kit"
-          />
-        </td>
         <td className="px-6 py-4">
           <input
             type="text"
@@ -633,10 +615,6 @@ function KitRow({ kit, isEditing, onEdit, onSave, onCancel, onDelete, loading }:
   
   return (
     <tr className="hover:bg-gray-50 transition-colors duration-200">
-      <td className="px-6 py-4 text-sm font-medium text-gray-900">{kit.id}</td>
-      <td className="px-6 py-4">
-        <code className="bg-gray-100 px-2 py-1 rounded text-sm">{kit.key}</code>
-      </td>
       <td className="px-6 py-4 text-sm text-gray-900 font-medium">{kit.name}</td>
       <td className="px-6 py-4">
         <span className={`status-badge ${
@@ -831,7 +809,7 @@ function AddMedForm({ onSave, onCancel, loading }: any) {
 }
 
 function AddKitForm({ onSave, onCancel, loading }: any) {
-  const [formData, setFormData] = useState({ key: '', name: '', active: true });
+  const [formData, setFormData] = useState({ name: '', active: true });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -851,30 +829,16 @@ function AddKitForm({ onSave, onCancel, loading }: any) {
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Chave do Kit</label>
-            <input
-              type="text"
-              value={formData.key}
-              onChange={(e) => setFormData({ ...formData, key: e.target.value.toUpperCase() })}
-              className="input-field w-full font-mono"
-              placeholder="EMERGENCIA, CIRURGIA, etc."
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Nome do Kit</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="input-field w-full"
-              placeholder="Ex: Kit Emergência, Kit Cirúrgico, etc."
-              required
-            />
-          </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Nome do Kit</label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            className="input-field w-full"
+            placeholder="Ex: Kit Emergência, Kit Cirúrgico, etc."
+            required
+          />
         </div>
         
         <div>
