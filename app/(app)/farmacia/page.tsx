@@ -95,55 +95,90 @@ export default function FarmaciaPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-semibold">Fila da Farmácia</h1>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            {getConnectionIcon()}
-            <span>{getConnectionText()}</span>
-            {connectionStatus !== 'connected' && (
-              <button
-                onClick={reconnect}
-                className="p-1 hover:bg-gray-100 rounded"
-                title="Reconectar"
-              >
-                <RotateCcw size={14} />
-              </button>
-            )}
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* Header com estatísticas e controles */}
+      <div className="card animate-fade-in mb-6">
+        <div className="card-header">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Farmácia</h1>
+              <p className="text-gray-600 mt-1">Fila de Pedidos em Tempo Real</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm">
+                <div className={`w-2 h-2 rounded-full ${
+                  connectionStatus === 'connected' ? 'bg-green-500' :
+                  connectionStatus === 'fallback' ? 'bg-yellow-500' : 'bg-red-500'
+                }`}></div>
+                <span className="font-medium text-gray-700">
+                  {getConnectionText()}
+                </span>
+              </div>
+              {connectionStatus === 'disconnected' && (
+                <button
+                  onClick={reconnect}
+                  className="btn-primary text-sm px-4 py-2"
+                >
+                  Reconectar
+                </button>
+              )}
+            </div>
           </div>
         </div>
-        
-        <div className="flex items-center gap-4">
-          {/* Estatísticas */}
-          <div className="text-sm text-gray-600">
-            Total: {stats.total} | MAV: {stats.withMAV} | Atribuídos: {stats.assigned}
+
+        {/* Estatísticas */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-blue-50 rounded-lg p-4 text-center">
+            <div className="text-3xl font-bold text-blue-600">{stats.total}</div>
+            <div className="text-sm font-medium text-blue-700 mt-1">Total</div>
+          </div>
+          <div className="bg-yellow-50 rounded-lg p-4 text-center">
+            <div className="text-3xl font-bold text-yellow-600">{stats.withMAV}</div>
+            <div className="text-sm font-medium text-yellow-700 mt-1">MAV</div>
+          </div>
+          <div className="bg-green-50 rounded-lg p-4 text-center">
+            <div className="text-3xl font-bold text-green-600">{stats.assigned}</div>
+            <div className="text-sm font-medium text-green-700 mt-1">Atribuídos</div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-4 text-center">
+            <div className="text-3xl font-bold text-gray-600">{orders.length}</div>
+            <div className="text-sm font-medium text-gray-700 mt-1">Ativos</div>
+          </div>
+        </div>
+
+        {/* Controles */}
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600">
+              {ordersLoading ? 'Carregando...' : `${orders.length} pedidos ativos`}
+            </span>
+            {(error || ordersError) && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-1 rounded-lg text-sm">
+                {error || ordersError}
+              </div>
+            )}
           </div>
           
-          {/* Botão de refresh manual */}
           <button
             onClick={refresh}
             disabled={ordersLoading}
-            className="p-2 hover:bg-gray-100 rounded disabled:opacity-50"
+            className="btn-secondary p-3 hover:bg-gray-100 rounded-lg disabled:opacity-50 transition-colors"
             title="Atualizar"
           >
-            <RotateCcw size={16} className={ordersLoading ? 'animate-spin' : ''} />
+            <RotateCcw size={18} className={ordersLoading ? 'animate-spin' : ''} />
           </button>
-          
-          {/* Indicadores de erro */}
-          {(error || ordersError) && (
-            <div className="text-red-600 text-sm bg-red-50 px-3 py-1 rounded">
-              {error || ordersError}
-            </div>
-          )}
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-3">
+      <div className="grid lg:grid-cols-3 gap-6">
         {ORDERED.map(st => (
-          <div key={st} className="border rounded p-2">
-            <div className="font-medium mb-2 uppercase text-xs">{st}</div>
-            <div className="space-y-2">
+          <div key={st} className="card animate-slide-up">
+            <div className="card-header">
+              <h3 className="font-semibold text-gray-900 uppercase tracking-wide text-sm">
+                {st === 'submitted' ? 'Enviados' : st === 'checking' ? 'Em Análise' : 'Prontos'}
+              </h3>
+            </div>
+            <div className="space-y-4">
               {orders.filter(o => o.status === st).map(o => (
                 <OrderCard 
                   key={o.id} 
@@ -155,6 +190,12 @@ export default function FarmaciaPage() {
                   mavCheckCount={getMAVCheckCount(o)}
                 />
               ))}
+              {orders.filter(o => o.status === st).length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">📋</div>
+                  <p className="text-sm">Nenhum pedido</p>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -162,32 +203,35 @@ export default function FarmaciaPage() {
 
       {/* Modal de Dupla Checagem MAV */}
       {showMAVModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <AlertTriangle className="text-yellow-600" size={20} />
-              Dupla Checagem MAV Necessária
-            </h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 animate-scale-in">
+            <div className="text-center mb-6">
+              <div className="bg-yellow-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <AlertTriangle className="text-yellow-600" size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Dupla Checagem MAV
+              </h3>
+              <p className="text-gray-600">
+                Este pedido contém medicamentos de alta vigilância (MAV) e requer dupla checagem antes de prosseguir.
+              </p>
+            </div>
             
-            <p className="text-sm text-gray-600 mb-4">
-              Este pedido contém medicamentos de alta vigilância (MAV) e requer dupla checagem antes de prosseguir.
-            </p>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Observações (opcional):</label>
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Observações (opcional):</label>
               <textarea
                 value={mavCheckNotes[showMAVModal] || ''}
                 onChange={(e) => setMavCheckNotes(prev => ({ ...prev, [showMAVModal]: e.target.value }))}
-                className="w-full border rounded px-3 py-2 text-sm"
+                className="input-field"
                 rows={3}
                 placeholder="Adicione observações sobre a checagem..."
               />
             </div>
             
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowMAVModal(null)}
-                className="px-4 py-2 text-sm border rounded hover:bg-gray-50"
+                className="btn-secondary flex-1"
                 disabled={loading}
               >
                 Cancelar
@@ -195,7 +239,7 @@ export default function FarmaciaPage() {
               <button
                 onClick={() => handleMAVCheck(showMAVModal)}
                 disabled={loading}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                className="btn-primary flex-1"
               >
                 {loading ? 'Registrando...' : 'Confirmar Checagem'}
               </button>
@@ -232,28 +276,32 @@ function OrderCard({
   };
 
   return (
-    <div className="border rounded p-3 space-y-2">
+    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 hover:shadow-md transition-all duration-200 animate-fade-in">
       {/* Header com ID, sala e SLA */}
-      <div className="flex justify-between items-start text-sm">
-        <div>
-          <span className="font-medium">#{order.id}</span>
-          <span className="text-gray-500 ml-1">· Sala {order.room_id}</span>
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-lg text-gray-900">#{order.id}</span>
+          <span className="text-gray-500 text-sm">Sala {order.room_id}</span>
         </div>
-        <div className="text-right">
-          <div className={`text-xs font-medium ${order.priority === 'urgente' ? 'text-red-600' : 'text-gray-600'}`}>
+        <div className="text-right space-y-1">
+          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+            order.priority === 'urgente' 
+              ? 'bg-red-100 text-red-800' 
+              : 'bg-gray-100 text-gray-700'
+          }`}>
             {order.priority.toUpperCase()}
           </div>
           <div className={`text-xs flex items-center gap-1 ${sla.color}`}>
             <Clock size={12} />
-            {sla.formattedTime}
+            <span className="font-medium">{sla.formattedTime}</span>
           </div>
         </div>
       </div>
 
       {/* Barra de progresso SLA */}
-      <div className="w-full bg-gray-200 rounded-full h-1.5">
+      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
         <div 
-          className={`h-1.5 rounded-full transition-all ${
+          className={`h-2 rounded-full transition-all duration-500 ${
             sla.status === 'critical' ? 'bg-red-500' :
             sla.status === 'warning' ? 'bg-yellow-500' : 'bg-green-500'
           }`}
@@ -263,23 +311,27 @@ function OrderCard({
 
       {/* Responsável */}
       {order.assigned_to && (
-        <div className="flex items-center gap-1 text-xs text-gray-600">
-          <User size={12} />
-          {order.profiles?.display_name || 'Usuário'}
+        <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg">
+          <User size={14} className="text-blue-600" />
+          <span className="text-sm font-medium text-blue-800">
+            {order.profiles?.display_name || 'Usuário'}
+          </span>
         </div>
       )}
 
       {/* Indicadores MAV */}
       {hasMAV && (
-        <div className="flex items-center gap-2 text-xs">
-          <div className="flex items-center gap-1 text-yellow-600">
-            <AlertTriangle size={12} />
-            MAV
+        <div className="flex items-center justify-between bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} className="text-yellow-600" />
+            <span className="text-sm font-semibold text-yellow-800">MAV</span>
           </div>
           {order.status === 'checking' && (
-            <div className="flex items-center gap-1">
-              <CheckCircle2 size={12} className={mavCheckCount >= 2 ? 'text-green-600' : 'text-gray-400'} />
-              <span className={mavCheckCount >= 2 ? 'text-green-600' : 'text-gray-600'}>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={16} className={mavCheckCount >= 2 ? 'text-green-600' : 'text-gray-400'} />
+              <span className={`text-sm font-medium ${
+                mavCheckCount >= 2 ? 'text-green-600' : 'text-gray-600'
+              }`}>
                 {mavCheckCount}/2 checks
               </span>
             </div>
@@ -289,34 +341,41 @@ function OrderCard({
 
       {/* Notas */}
       {order.notes && (
-        <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-          {order.notes}
+        <div className="bg-gray-50 border border-gray-200 p-3 rounded-lg">
+          <p className="text-sm text-gray-700 leading-relaxed">{order.notes}</p>
         </div>
       )}
 
       {/* Ações */}
-      <div className="flex gap-2">
+      <div className="flex gap-3 pt-2">
         {order.status === 'submitted' && !order.assigned_to && (
           <button
             onClick={onClaim}
             disabled={loading}
-            className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+            className="btn-primary flex-1 text-sm py-2"
           >
-            Assumir
+            Assumir Pedido
           </button>
         )}
         
         <button
           onClick={onAdvance}
           disabled={loading || !canAdvance()}
-          className={`text-xs px-3 py-1 rounded disabled:opacity-50 ${
+          className={`flex-1 text-sm py-2 px-4 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 ${
             canAdvance() 
-              ? 'bg-black text-white hover:bg-gray-800' 
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm hover:shadow-md' 
+              : 'bg-gray-200 text-gray-500 cursor-not-allowed'
           }`}
           title={!canAdvance() ? 'Dupla checagem MAV necessária' : ''}
         >
-          {loading ? 'Processando...' : 'Avançar'}
+          {loading ? (
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Processando...
+            </div>
+          ) : (
+            'Avançar'
+          )}
         </button>
       </div>
     </div>

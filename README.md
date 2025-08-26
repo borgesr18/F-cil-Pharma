@@ -1,4 +1,4 @@
-# Pedidos & Farmácia — Protótipo v0
+# Fácil Pharma — Sistema de Gestão Hospitalar v1.0
 
 Protótipo Next.js + Supabase para pedidos por sala (tablets/kiosk) com fila da farmácia em tempo real.
 

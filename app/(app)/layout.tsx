@@ -15,9 +15,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
   return (
-    <html lang="pt-br"><body>
+    <>
       <header className="border-b p-3 flex gap-4 items-center">
-        <Link href="/dashboard" className="font-semibold">Pedidos & Farmácia</Link>
+        <Link href="/dashboard" className="font-semibold">Fácil Pharma</Link>
         <nav className="flex gap-3 text-sm">
           <Link href="/sala">Sala</Link>
           <Link href="/farmacia">Farmácia</Link>
@@ -25,6 +25,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </nav>
       </header>
       <main className="p-4">{children}</main>
-    </body></html>
+    </>
   );
 }

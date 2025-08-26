@@ -5,7 +5,12 @@ import type { Database } from '@/lib/supabase/types';
 export default async function DashboardPage() {
   const supabase = createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', user!.id).single();
+  
+  if (!user) {
+    redirect('/signin');
+  }
+  
+  const { data: profile } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
 
   if (profile?.role === 'pharmacy' || profile?.role === 'admin') redirect('/farmacia');
   if (profile?.role === 'nurse') redirect('/sala');

@@ -125,29 +125,34 @@ export default function AdminPage() {
   };
 
   const renderRoomsTable = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Salas</h2>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          <Plus size={16} />
-          Adicionar Sala
-        </button>
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Gerenciar Salas</h2>
+            <p className="text-gray-600 text-sm mt-1">Configure as salas disponíveis no sistema</p>
+          </div>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="btn-primary flex items-center gap-2 px-6 py-3 text-sm font-semibold"
+          >
+            <Plus size={18} />
+            Nova Sala
+          </button>
+        </div>
       </div>
       
-      <div className="border rounded-lg overflow-hidden">
+      <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-4 py-2 text-left">ID</th>
-              <th className="px-4 py-2 text-left">Nome</th>
-              <th className="px-4 py-2 text-left">Ativo</th>
-              <th className="px-4 py-2 text-left">Ações</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nome</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-200">
             {rooms.map((room) => (
               <RoomRow
                 key={room.id}
@@ -165,41 +170,48 @@ export default function AdminPage() {
       </div>
       
       {showAddForm && (
-        <AddRoomForm
-          onSave={handleSave}
-          onCancel={() => setShowAddForm(false)}
-          loading={loading}
-        />
+        <div className="p-8 border-t border-gray-200 bg-gray-50">
+          <AddRoomForm
+            onSave={handleSave}
+            onCancel={() => setShowAddForm(false)}
+            loading={loading}
+          />
+        </div>
       )}
     </div>
   );
 
   const renderMedsTable = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Medicamentos</h2>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          <Plus size={16} />
-          Adicionar Medicamento
-        </button>
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Gerenciar Medicamentos</h2>
+            <p className="text-gray-600 text-sm mt-1">Configure os medicamentos e MAVs do sistema</p>
+          </div>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="btn-primary flex items-center gap-2 px-6 py-3 text-sm font-semibold"
+          >
+            <Plus size={18} />
+            Novo Medicamento
+          </button>
+        </div>
       </div>
       
-      <div className="border rounded-lg overflow-hidden">
+      <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-4 py-2 text-left">ID</th>
-              <th className="px-4 py-2 text-left">Nome</th>
-              <th className="px-4 py-2 text-left">Unidade</th>
-              <th className="px-4 py-2 text-left">MAV</th>
-              <th className="px-4 py-2 text-left">Ativo</th>
-              <th className="px-4 py-2 text-left">Ações</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nome</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Unidade</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">MAV</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-200">
             {meds.map((med) => (
               <MedRow
                 key={med.id}
@@ -217,40 +229,47 @@ export default function AdminPage() {
       </div>
       
       {showAddForm && (
-        <AddMedForm
-          onSave={handleSave}
-          onCancel={() => setShowAddForm(false)}
-          loading={loading}
-        />
+        <div className="p-8 border-t border-gray-200 bg-gray-50">
+          <AddMedForm
+            onSave={handleSave}
+            onCancel={() => setShowAddForm(false)}
+            loading={loading}
+          />
+        </div>
       )}
     </div>
   );
 
   const renderKitsTable = () => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Kits</h2>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          <Plus size={16} />
-          Adicionar Kit
-        </button>
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+      <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Gerenciar Kits</h2>
+            <p className="text-gray-600 text-sm mt-1">Configure os kits de medicamentos disponíveis</p>
+          </div>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="btn-primary flex items-center gap-2 px-6 py-3 text-sm font-semibold"
+          >
+            <Plus size={18} />
+            Novo Kit
+          </button>
+        </div>
       </div>
       
-      <div className="border rounded-lg overflow-hidden">
+      <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-4 py-2 text-left">ID</th>
-              <th className="px-4 py-2 text-left">Chave</th>
-              <th className="px-4 py-2 text-left">Nome</th>
-              <th className="px-4 py-2 text-left">Ativo</th>
-              <th className="px-4 py-2 text-left">Ações</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Chave</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nome</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-200">
             {kits.map((kit) => (
               <KitRow
                 key={kit.id}
@@ -268,60 +287,89 @@ export default function AdminPage() {
       </div>
       
       {showAddForm && (
-        <AddKitForm
-          onSave={handleSave}
-          onCancel={() => setShowAddForm(false)}
-          loading={loading}
-        />
+        <div className="p-8 border-t border-gray-200 bg-gray-50">
+          <AddKitForm
+            onSave={handleSave}
+            onCancel={() => setShowAddForm(false)}
+            loading={loading}
+          />
+        </div>
       )}
     </div>
   );
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Administração</h1>
-      
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Administração do Sistema</h1>
+              <p className="text-gray-600">Gerencie salas, medicamentos e kits do Fácil Pharma</p>
+            </div>
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 rounded-xl">
+              <div className="text-white text-center">
+                <div className="text-2xl font-bold">{activeTab === 'rooms' ? rooms.length : activeTab === 'meds' ? meds.length : kits.length}</div>
+                <div className="text-sm opacity-90">
+                  {activeTab === 'rooms' ? 'Salas' : activeTab === 'meds' ? 'Medicamentos' : 'Kits'}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-      
-      <div className="border-b">
-        <nav className="flex space-x-8">
-          {(['rooms', 'meds', 'kits'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                setEditingId(null);
-                setShowAddForm(false);
-              }}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === tab
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {tab === 'rooms' ? 'Salas' : tab === 'meds' ? 'Medicamentos' : 'Kits'}
-            </button>
-          ))}
-        </nav>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl shadow-sm animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs font-bold">!</span>
+              </div>
+              {error}
+            </div>
+          </div>
+        )}
+        
+        {/* Navigation Tabs */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+          <nav className="flex">
+            {(['rooms', 'meds', 'kits'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => {
+                  setActiveTab(tab);
+                  setEditingId(null);
+                  setShowAddForm(false);
+                }}
+                className={`flex-1 py-4 px-6 font-semibold text-sm transition-all duration-200 ${
+                  activeTab === tab
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                {tab === 'rooms' ? 'Salas' : tab === 'meds' ? 'Medicamentos' : 'Kits'}
+              </button>
+            ))}
+          </nav>
+        </div>
+        
+        {loading && (
+          <div className="text-center py-12">
+            <div className="inline-flex items-center gap-3 bg-white px-6 py-4 rounded-xl shadow-lg">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+              <span className="text-gray-700 font-medium">Carregando dados...</span>
+            </div>
+          </div>
+        )}
+        
+        {!loading && (
+          <div className="animate-fade-in">
+            {activeTab === 'rooms' && renderRoomsTable()}
+            {activeTab === 'meds' && renderMedsTable()}
+            {activeTab === 'kits' && renderKitsTable()}
+          </div>
+        )}
       </div>
-      
-      {loading && (
-        <div className="text-center py-4">
-          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-        </div>
-      )}
-      
-      {!loading && (
-        <div>
-          {activeTab === 'rooms' && renderRoomsTable()}
-          {activeTab === 'meds' && renderMedsTable()}
-          {activeTab === 'kits' && renderKitsTable()}
-        </div>
-      )}
     </div>
   );
 }
@@ -332,36 +380,42 @@ function RoomRow({ room, isEditing, onEdit, onSave, onCancel, onDelete, loading 
   
   if (isEditing) {
     return (
-      <tr>
-        <td className="px-4 py-2">{room.id}</td>
-        <td className="px-4 py-2">
+      <tr className="bg-blue-50 border-l-4 border-blue-500">
+        <td className="px-6 py-4 text-sm font-medium text-gray-900">{room.id}</td>
+        <td className="px-6 py-4">
           <input
             type="text"
             value={editData.name}
             onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-            className="border rounded px-2 py-1 w-full"
+            className="input-field w-full"
+            placeholder="Nome da sala"
           />
         </td>
-        <td className="px-4 py-2">
-          <input
-            type="checkbox"
-            checked={editData.active}
-            onChange={(e) => setEditData({ ...editData, active: e.target.checked })}
-          />
+        <td className="px-6 py-4">
+          <select
+            value={editData.active ? 'true' : 'false'}
+            onChange={(e) => setEditData({ ...editData, active: e.target.value === 'true' })}
+            className="input-field"
+          >
+            <option value="true">Ativo</option>
+            <option value="false">Inativo</option>
+          </select>
         </td>
-        <td className="px-4 py-2">
+        <td className="px-6 py-4">
           <div className="flex gap-2">
             <button
               onClick={() => onSave(editData)}
               disabled={loading}
-              className="text-green-600 hover:text-green-800 disabled:opacity-50"
+              className="btn-success p-2 disabled:opacity-50"
+              title="Salvar"
             >
               <Save size={16} />
             </button>
             <button
               onClick={onCancel}
               disabled={loading}
-              className="text-gray-600 hover:text-gray-800 disabled:opacity-50"
+              className="btn-secondary p-2 disabled:opacity-50"
+              title="Cancelar"
             >
               <X size={16} />
             </button>
@@ -372,29 +426,31 @@ function RoomRow({ room, isEditing, onEdit, onSave, onCancel, onDelete, loading 
   }
   
   return (
-    <tr>
-      <td className="px-4 py-2">{room.id}</td>
-      <td className="px-4 py-2">{room.name}</td>
-      <td className="px-4 py-2">
-        <span className={`px-2 py-1 rounded text-xs ${
-          room.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+    <tr className="hover:bg-gray-50 transition-colors duration-200">
+      <td className="px-6 py-4 text-sm font-medium text-gray-900">{room.id}</td>
+      <td className="px-6 py-4 text-sm text-gray-900 font-medium">{room.name}</td>
+      <td className="px-6 py-4">
+        <span className={`status-badge ${
+          room.active ? 'status-active' : 'status-inactive'
         }`}>
           {room.active ? 'Ativo' : 'Inativo'}
         </span>
       </td>
-      <td className="px-4 py-2">
+      <td className="px-6 py-4">
         <div className="flex gap-2">
           <button
             onClick={onEdit}
             disabled={loading}
-            className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
+            className="btn-secondary p-2"
+            title="Editar"
           >
             <Edit2 size={16} />
           </button>
           <button
             onClick={onDelete}
             disabled={loading}
-            className="text-red-600 hover:text-red-800 disabled:opacity-50"
+            className="btn-danger p-2"
+            title="Excluir"
           >
             <Trash2 size={16} />
           </button>
@@ -409,51 +465,61 @@ function MedRow({ med, isEditing, onEdit, onSave, onCancel, onDelete, loading }:
   
   if (isEditing) {
     return (
-      <tr>
-        <td className="px-4 py-2">{med.id}</td>
-        <td className="px-4 py-2">
+      <tr className="bg-blue-50 border-l-4 border-blue-500">
+        <td className="px-6 py-4 text-sm font-medium text-gray-900">{med.id}</td>
+        <td className="px-6 py-4">
           <input
             type="text"
             value={editData.name}
             onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-            className="border rounded px-2 py-1 w-full"
+            className="input-field w-full"
+            placeholder="Nome do medicamento"
           />
         </td>
-        <td className="px-4 py-2">
+        <td className="px-6 py-4">
           <input
             type="text"
             value={editData.unit}
             onChange={(e) => setEditData({ ...editData, unit: e.target.value })}
-            className="border rounded px-2 py-1 w-full"
+            className="input-field w-full"
+            placeholder="Unidade (mg, ml, etc.)"
           />
         </td>
-        <td className="px-4 py-2">
-          <input
-            type="checkbox"
-            checked={editData.high_alert}
-            onChange={(e) => setEditData({ ...editData, high_alert: e.target.checked })}
-          />
+        <td className="px-6 py-4">
+          <select
+            value={editData.high_alert ? 'true' : 'false'}
+            onChange={(e) => setEditData({ ...editData, high_alert: e.target.value === 'true' })}
+            className="input-field"
+          >
+            <option value="true">Sim</option>
+            <option value="false">Não</option>
+          </select>
         </td>
-        <td className="px-4 py-2">
-          <input
-            type="checkbox"
-            checked={editData.active}
-            onChange={(e) => setEditData({ ...editData, active: e.target.checked })}
-          />
+        <td className="px-6 py-4">
+          <select
+            value={editData.active ? 'true' : 'false'}
+            onChange={(e) => setEditData({ ...editData, active: e.target.value === 'true' })}
+            className="input-field"
+          >
+            <option value="true">Ativo</option>
+            <option value="false">Inativo</option>
+          </select>
         </td>
-        <td className="px-4 py-2">
+        <td className="px-6 py-4">
           <div className="flex gap-2">
             <button
               onClick={() => onSave(editData)}
               disabled={loading}
-              className="text-green-600 hover:text-green-800 disabled:opacity-50"
+              className="btn-success p-2 disabled:opacity-50"
+              title="Salvar"
             >
               <Save size={16} />
             </button>
             <button
               onClick={onCancel}
               disabled={loading}
-              className="text-gray-600 hover:text-gray-800 disabled:opacity-50"
+              className="btn-secondary p-2 disabled:opacity-50"
+              title="Cancelar"
             >
               <X size={16} />
             </button>
@@ -464,37 +530,39 @@ function MedRow({ med, isEditing, onEdit, onSave, onCancel, onDelete, loading }:
   }
   
   return (
-    <tr>
-      <td className="px-4 py-2">{med.id}</td>
-      <td className="px-4 py-2">{med.name}</td>
-      <td className="px-4 py-2">{med.unit}</td>
-      <td className="px-4 py-2">
-        {med.high_alert && (
-          <span className="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800">
-            MAV
-          </span>
-        )}
+    <tr className="hover:bg-gray-50 transition-colors duration-200">
+      <td className="px-6 py-4 text-sm font-medium text-gray-900">{med.id}</td>
+      <td className="px-6 py-4 text-sm text-gray-900 font-medium">{med.name}</td>
+      <td className="px-6 py-4 text-sm text-gray-600">{med.unit}</td>
+      <td className="px-6 py-4">
+        <span className={`status-badge ${
+          med.high_alert ? 'status-warning' : 'status-neutral'
+        }`}>
+          {med.high_alert ? 'MAV' : 'Normal'}
+        </span>
       </td>
-      <td className="px-4 py-2">
-        <span className={`px-2 py-1 rounded text-xs ${
-          med.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+      <td className="px-6 py-4">
+        <span className={`status-badge ${
+          med.active ? 'status-active' : 'status-inactive'
         }`}>
           {med.active ? 'Ativo' : 'Inativo'}
         </span>
       </td>
-      <td className="px-4 py-2">
+      <td className="px-6 py-4">
         <div className="flex gap-2">
           <button
             onClick={onEdit}
             disabled={loading}
-            className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
+            className="btn-secondary p-2"
+            title="Editar"
           >
             <Edit2 size={16} />
           </button>
           <button
             onClick={onDelete}
             disabled={loading}
-            className="text-red-600 hover:text-red-800 disabled:opacity-50"
+            className="btn-danger p-2"
+            title="Excluir"
           >
             <Trash2 size={16} />
           </button>
@@ -509,44 +577,51 @@ function KitRow({ kit, isEditing, onEdit, onSave, onCancel, onDelete, loading }:
   
   if (isEditing) {
     return (
-      <tr>
-        <td className="px-4 py-2">{kit.id}</td>
-        <td className="px-4 py-2">
+      <tr className="bg-blue-50 border-l-4 border-blue-500">
+        <td className="px-6 py-4 text-sm font-medium text-gray-900">{kit.id}</td>
+        <td className="px-6 py-4">
           <input
             type="text"
             value={editData.key}
             onChange={(e) => setEditData({ ...editData, key: e.target.value })}
-            className="border rounded px-2 py-1 w-full"
+            className="input-field w-full"
+            placeholder="Chave do kit"
           />
         </td>
-        <td className="px-4 py-2">
+        <td className="px-6 py-4">
           <input
             type="text"
             value={editData.name}
             onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-            className="border rounded px-2 py-1 w-full"
+            className="input-field w-full"
+            placeholder="Nome do kit"
           />
         </td>
-        <td className="px-4 py-2">
-          <input
-            type="checkbox"
-            checked={editData.active}
-            onChange={(e) => setEditData({ ...editData, active: e.target.checked })}
-          />
+        <td className="px-6 py-4">
+          <select
+            value={editData.active ? 'true' : 'false'}
+            onChange={(e) => setEditData({ ...editData, active: e.target.value === 'true' })}
+            className="input-field"
+          >
+            <option value="true">Ativo</option>
+            <option value="false">Inativo</option>
+          </select>
         </td>
-        <td className="px-4 py-2">
+        <td className="px-6 py-4">
           <div className="flex gap-2">
             <button
               onClick={() => onSave(editData)}
               disabled={loading}
-              className="text-green-600 hover:text-green-800 disabled:opacity-50"
+              className="btn-success p-2 disabled:opacity-50"
+              title="Salvar"
             >
               <Save size={16} />
             </button>
             <button
               onClick={onCancel}
               disabled={loading}
-              className="text-gray-600 hover:text-gray-800 disabled:opacity-50"
+              className="btn-secondary p-2 disabled:opacity-50"
+              title="Cancelar"
             >
               <X size={16} />
             </button>
@@ -557,32 +632,34 @@ function KitRow({ kit, isEditing, onEdit, onSave, onCancel, onDelete, loading }:
   }
   
   return (
-    <tr>
-      <td className="px-4 py-2">{kit.id}</td>
-      <td className="px-4 py-2">
+    <tr className="hover:bg-gray-50 transition-colors duration-200">
+      <td className="px-6 py-4 text-sm font-medium text-gray-900">{kit.id}</td>
+      <td className="px-6 py-4">
         <code className="bg-gray-100 px-2 py-1 rounded text-sm">{kit.key}</code>
       </td>
-      <td className="px-4 py-2">{kit.name}</td>
-      <td className="px-4 py-2">
-        <span className={`px-2 py-1 rounded text-xs ${
-          kit.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+      <td className="px-6 py-4 text-sm text-gray-900 font-medium">{kit.name}</td>
+      <td className="px-6 py-4">
+        <span className={`status-badge ${
+          kit.active ? 'status-active' : 'status-inactive'
         }`}>
           {kit.active ? 'Ativo' : 'Inativo'}
         </span>
       </td>
-      <td className="px-4 py-2">
+      <td className="px-6 py-4">
         <div className="flex gap-2">
           <button
             onClick={onEdit}
             disabled={loading}
-            className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
+            className="btn-secondary p-2"
+            title="Editar"
           >
             <Edit2 size={16} />
           </button>
           <button
             onClick={onDelete}
             disabled={loading}
-            className="text-red-600 hover:text-red-800 disabled:opacity-50"
+            className="btn-danger p-2"
+            title="Excluir"
           >
             <Trash2 size={16} />
           </button>
@@ -595,179 +672,240 @@ function KitRow({ kit, isEditing, onEdit, onSave, onCancel, onDelete, loading }:
 // Formulários de adição
 function AddRoomForm({ onSave, onCancel, loading }: any) {
   const [formData, setFormData] = useState({ name: '', active: true });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData, true);
+  };
   
   return (
-    <div className="border rounded-lg p-4 bg-gray-50">
-      <h3 className="font-medium mb-4">Adicionar Nova Sala</h3>
-      <div className="grid grid-cols-2 gap-4">
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-blue-100 rounded-lg">
+          <Plus size={20} className="text-blue-600" />
+        </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Nome</label>
+          <h3 className="text-lg font-bold text-gray-900">Adicionar Nova Sala</h3>
+          <p className="text-sm text-gray-600">Preencha os dados da nova sala</p>
+        </div>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Nome da Sala</label>
           <input
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="border rounded px-3 py-2 w-full"
-            placeholder="Nome da sala"
+            className="input-field w-full"
+            placeholder="Ex: UTI 1, Enfermaria A, etc."
+            required
           />
         </div>
+        
         <div>
-          <label className="block text-sm font-medium mb-1">Status</label>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={formData.active}
-              onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-              className="mr-2"
-            />
-            Ativo
-          </label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+          <select
+            value={formData.active ? 'true' : 'false'}
+            onChange={(e) => setFormData({ ...formData, active: e.target.value === 'true' })}
+            className="input-field"
+          >
+            <option value="true">Ativo</option>
+            <option value="false">Inativo</option>
+          </select>
         </div>
-      </div>
-      <div className="flex gap-2 mt-4">
-        <button
-          onClick={() => onSave(formData, true)}
-          disabled={loading || !formData.name}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          Salvar
-        </button>
-        <button
-          onClick={onCancel}
-          disabled={loading}
-          className="border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
-        >
-          Cancelar
-        </button>
-      </div>
+        
+        <div className="flex gap-3 pt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary flex-1 disabled:opacity-50"
+          >
+            {loading ? 'Salvando...' : 'Salvar Sala'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="btn-secondary px-6"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
 
 function AddMedForm({ onSave, onCancel, loading }: any) {
   const [formData, setFormData] = useState({ name: '', unit: '', high_alert: false, active: true });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData, true);
+  };
   
   return (
-    <div className="border rounded-lg p-4 bg-gray-50">
-      <h3 className="font-medium mb-4">Adicionar Novo Medicamento</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Nome</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="border rounded px-3 py-2 w-full"
-            placeholder="Nome do medicamento"
-          />
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-green-100 rounded-lg">
+          <Plus size={20} className="text-green-600" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Unidade</label>
-          <input
-            type="text"
-            value={formData.unit}
-            onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-            className="border rounded px-3 py-2 w-full"
-            placeholder="mg, ml, cp, etc."
-          />
-        </div>
-        <div>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={formData.high_alert}
-              onChange={(e) => setFormData({ ...formData, high_alert: e.target.checked })}
-              className="mr-2"
-            />
-            Medicamento de Alta Vigilância (MAV)
-          </label>
-        </div>
-        <div>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={formData.active}
-              onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-              className="mr-2"
-            />
-            Ativo
-          </label>
+          <h3 className="text-lg font-bold text-gray-900">Adicionar Novo Medicamento</h3>
+          <p className="text-sm text-gray-600">Configure um novo medicamento no sistema</p>
         </div>
       </div>
-      <div className="flex gap-2 mt-4">
-        <button
-          onClick={() => onSave(formData, true)}
-          disabled={loading || !formData.name || !formData.unit}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          Salvar
-        </button>
-        <button
-          onClick={onCancel}
-          disabled={loading}
-          className="border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
-        >
-          Cancelar
-        </button>
-      </div>
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Nome do Medicamento</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="input-field w-full"
+              placeholder="Ex: Dipirona, Paracetamol, etc."
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Unidade</label>
+            <input
+              type="text"
+              value={formData.unit}
+              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+              className="input-field w-full"
+              placeholder="Ex: mg, ml, comprimido, etc."
+              required
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo MAV</label>
+            <select
+              value={formData.high_alert ? 'true' : 'false'}
+              onChange={(e) => setFormData({ ...formData, high_alert: e.target.value === 'true' })}
+              className="input-field w-full"
+            >
+              <option value="false">Medicamento Normal</option>
+              <option value="true">MAV (Medicamento de Alta Vigilância)</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+            <select
+              value={formData.active ? 'true' : 'false'}
+              onChange={(e) => setFormData({ ...formData, active: e.target.value === 'true' })}
+              className="input-field w-full"
+            >
+              <option value="true">Ativo</option>
+              <option value="false">Inativo</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className="flex gap-3 pt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary flex-1 disabled:opacity-50"
+          >
+            {loading ? 'Salvando...' : 'Salvar Medicamento'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="btn-secondary px-6"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
 
 function AddKitForm({ onSave, onCancel, loading }: any) {
   const [formData, setFormData] = useState({ key: '', name: '', active: true });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData, true);
+  };
   
   return (
-    <div className="border rounded-lg p-4 bg-gray-50">
-      <h3 className="font-medium mb-4">Adicionar Novo Kit</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Chave</label>
-          <input
-            type="text"
-            value={formData.key}
-            onChange={(e) => setFormData({ ...formData, key: e.target.value.toUpperCase() })}
-            className="border rounded px-3 py-2 w-full font-mono"
-            placeholder="EMERGENCIA, CIRURGIA, etc."
-          />
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-purple-100 rounded-lg">
+          <Plus size={20} className="text-purple-600" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Nome</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="border rounded px-3 py-2 w-full"
-            placeholder="Nome do kit"
-          />
+          <h3 className="text-lg font-bold text-gray-900">Adicionar Novo Kit</h3>
+          <p className="text-sm text-gray-600">Configure um novo kit de medicamentos</p>
         </div>
-        <div>
-          <label className="flex items-center">
+      </div>
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Chave do Kit</label>
             <input
-              type="checkbox"
-              checked={formData.active}
-              onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-              className="mr-2"
+              type="text"
+              value={formData.key}
+              onChange={(e) => setFormData({ ...formData, key: e.target.value.toUpperCase() })}
+              className="input-field w-full font-mono"
+              placeholder="EMERGENCIA, CIRURGIA, etc."
+              required
             />
-            Ativo
-          </label>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Nome do Kit</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="input-field w-full"
+              placeholder="Ex: Kit Emergência, Kit Cirúrgico, etc."
+              required
+            />
+          </div>
         </div>
-      </div>
-      <div className="flex gap-2 mt-4">
-        <button
-          onClick={() => onSave(formData, true)}
-          disabled={loading || !formData.key || !formData.name}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          Salvar
-        </button>
-        <button
-          onClick={onCancel}
-          disabled={loading}
-          className="border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
-        >
-          Cancelar
-        </button>
-      </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+          <select
+            value={formData.active ? 'true' : 'false'}
+            onChange={(e) => setFormData({ ...formData, active: e.target.value === 'true' })}
+            className="input-field"
+          >
+            <option value="true">Ativo</option>
+            <option value="false">Inativo</option>
+          </select>
+        </div>
+        
+        <div className="flex gap-3 pt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary flex-1 disabled:opacity-50"
+          >
+            {loading ? 'Salvando...' : 'Salvar Kit'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="btn-secondary px-6"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
