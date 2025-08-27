@@ -33,6 +33,7 @@ export default function FarmaciaPage() {
     connectionStatus, 
     refresh, 
     reconnect,
+    primeAudio,
     stats 
   } = useRealtimeOrders({ statusFilter: ORDERED });
 
@@ -57,6 +58,9 @@ export default function FarmaciaPage() {
       } else {
         alert(result.error || 'Erro ao avançar pedido');
       }
+    } else {
+      // Atualiza imediatamente a lista após avanço bem-sucedido
+      await refresh();
     }
   }
 
@@ -78,6 +82,8 @@ export default function FarmaciaPage() {
       if (result.can_advance) {
         // Tentar avançar automaticamente após dupla checagem
         await setOrderStatus(orderId, 'ready', 'Avanço após dupla checagem MAV completa');
+        // Garantir atualização imediata após avanço automático
+        await refresh();
       }
     } else {
       alert(result.error || 'Erro ao registrar checagem MAV');
@@ -181,6 +187,13 @@ export default function FarmaciaPage() {
           >
             <RotateCcw size={18} className={ordersLoading ? 'animate-spin' : ''} />
           </button>
+          {/* Botão invisível para primar áudio via primeira interação, fallback se necessário */}
+          <button
+            onClick={primeAudio}
+            aria-hidden="true"
+            tabIndex={-1}
+            className="hidden"
+          />
         </div>
       </div>
 

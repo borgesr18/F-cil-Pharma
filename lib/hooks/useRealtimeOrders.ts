@@ -218,6 +218,18 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
     setupRealtime();
   }, [setupRealtime]);
 
+  // Desbloquear áudio após primeira interação do usuário
+  const primeAudio = useCallback(async () => {
+    try {
+      if (!audioRef.current) return;
+      audioRef.current.muted = true;
+      await audioRef.current.play();
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.muted = false;
+    } catch {}
+  }, []);
+
   // Inicialização
   useEffect(() => {
     // Criar elemento de áudio
@@ -253,6 +265,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
     connectionStatus,
     refresh,
     reconnect,
+    primeAudio,
     // Estatísticas úteis
     stats: {
       total: orders.length,
