@@ -148,6 +148,14 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
       supabase.removeChannel(channelRef.current);
     }
 
+    // Garantir conexão do cliente realtime e tentar reconectar proativamente
+    try {
+      const realtimeClient: any = (supabase as any).realtime;
+      if (realtimeClient && typeof realtimeClient.connect === 'function') {
+        realtimeClient.connect();
+      }
+    } catch {}
+
     channelRef.current = supabase
       .channel('orders_realtime')
       .on('postgres_changes', 
@@ -186,6 +194,16 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
           if (enableFallback) {
             setupPolling();
           }
+        } else if (status === 'CLOSED') {
+          setConnectionStatus('disconnected');
+          if (enableFallback) {
+            setupPolling();
+          }
+          // tentar re-assinar o canal após breve intervalo
+          setTimeout(() => {
+            if (!channelRef.current) return;
+            setupRealtime();
+          }, 1500);
         }
       });
   }, [loadOrders, enableFallback, supabase, setupPolling]);

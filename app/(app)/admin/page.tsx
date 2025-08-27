@@ -75,7 +75,7 @@ export default function AdminPage() {
   const loadUsers = useCallback(async () => {
     try {
       // Buscar usuários do auth.users junto com seus perfis
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
       if (authError) throw authError;
 
       // Buscar perfis dos usuários
@@ -92,7 +92,7 @@ export default function AdminPage() {
       if (profilesError) throw profilesError;
 
       // Combinar dados do auth com perfis
-      const usersWithProfiles = authUsers.users.map(authUser => {
+      const usersWithProfiles = (authUsers?.users || []).map(authUser => {
         const profile = profiles?.find(p => p.user_id === authUser.id);
         return {
           id: authUser.id,
