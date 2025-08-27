@@ -49,7 +49,7 @@ export default function AdminPage() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [userSearchTerm, setUserSearchTerm] = useState('');
-  const [userRoleFilter, setUserRoleFilter] = useState<string>('');
+  const [userRoleFilter, setUserRoleFilter] = useState<string>('all');
   
   const supabase = useMemo(() => createClient(), []);
 
@@ -112,7 +112,7 @@ export default function AdminPage() {
           display_name: profile?.display_name || null,
           role: profile?.role || 'nurse',
           room_id: profile?.room_id || null,
-          room_name: (profile as any)?.rooms?.name || null,
+          room_name: profile?.rooms?.[0]?.name || null,
           created_at: authUser.created_at
         };
       });
@@ -151,14 +151,13 @@ export default function AdminPage() {
         if (error) throw error;
         setKits(data || []);
       } else if (activeTab === 'users') {
-        // Carregar salas também para edição de usuários
-        const { data: roomsData, error: roomsError } = await supabase
-          .from('rooms')
-          .select('*')
-          .order('name');
-        if (roomsError) throw roomsError;
-        setRooms(roomsData || []);
-        await loadUsers();
+        // Carregar salas também para o formulário de usuário
+        const [usersResult, roomsResult] = await Promise.all([
+          loadUsers(),
+          supabase.from('rooms').select('*').order('name')
+        ]);
+        if (roomsResult.error) throw roomsResult.error;
+        setRooms(roomsResult.data || []);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
@@ -181,8 +180,12 @@ export default function AdminPage() {
       if (activeTab === 'users') {
         if (isNew) {
           await handleSaveUser(item, true);
+          // Mostrar notificação de sucesso
+          alert('Usuário criado com sucesso!');
         } else {
           await handleSaveUser(item, false);
+          // Mostrar notificação de sucesso
+          alert('Usuário atualizado com sucesso!');
         }
       } else {
         if (isNew) {
@@ -204,6 +207,7 @@ export default function AdminPage() {
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar');
+      alert('Erro ao salvar: ' + (err instanceof Error ? err.message : 'Erro desconhecido'));
     } finally {
       setLoading(false);
     }
@@ -247,14 +251,7 @@ export default function AdminPage() {
             email_confirm: true
           })
         });
-        if (!res.ok) {
-          let message = 'Falha ao criar usuário';
-          try {
-            const err = await res.json();
-            if (err?.error) message = err.error;
-          } catch {}
-          throw new Error(message);
-        }
+        if (!res.ok) throw new Error('Falha ao criar usuário');
         const authData = await res.json();
 
         // Criar perfil do usuário
@@ -266,12 +263,7 @@ export default function AdminPage() {
             role: userData.role,
             room_id: userData.room_id || null
           });
-        if (profileError) {
-          try {
-            await fetch(`/api/admin/users?userId=${encodeURIComponent(authData.user.id)}`, { method: 'DELETE' });
-          } catch {}
-          throw profileError;
-        }
+        if (profileError) throw profileError;
       } else {
         // Atualizar apenas o perfil (não podemos alterar email no auth facilmente)
         const { error: profileError } = await supabase
@@ -749,7 +741,10 @@ function RoomRow({ room, isEditing, onEdit, onSave, onCancel, onDelete, loading 
         <td className="px-6 py-4">
           <div className="flex gap-2">
             <button
-              onClick={() => onSave(editData)}
+              onClick={async () => {
+                await onSave(editData);
+                onCancel(); // Fechar modo de edição após salvar
+              }}
               disabled={loading}
               className="btn-success p-2 disabled:opacity-50"
               title="Salvar"
@@ -790,7 +785,6 @@ function RoomRow({ room, isEditing, onEdit, onSave, onCancel, onDelete, loading 
           >
             <Edit2 size={16} />
           </button>
-          
           <button
             onClick={onDelete}
             disabled={loading}
@@ -1339,31 +1333,6 @@ function UserRow({ user, rooms, isEditing, onEdit, onSave, onCancel, onDelete, l
             title="Editar"
           >
             <Edit2 size={16} />
-          </button>
-          <button
-            onClick={async () => {
-              const newPass = prompt('Definir nova senha para o usuário:');
-              if (!newPass) return;
-              try {
-                const res = await fetch('/api/admin/users', {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId: user.id, password: newPass })
-                });
-                if (!res.ok) {
-                  const data = await res.json().catch(() => ({}));
-                  throw new Error(data?.error || 'Falha ao definir senha');
-                }
-                alert('Senha atualizada com sucesso.');
-              } catch (err: any) {
-                alert(err?.message || 'Erro ao atualizar senha');
-              }
-            }}
-            disabled={loading}
-            className="btn-secondary p-2"
-            title="Definir senha"
-          >
-            <Settings size={16} />
           </button>
           <button
             onClick={onDelete}

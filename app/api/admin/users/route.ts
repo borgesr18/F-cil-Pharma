@@ -42,17 +42,7 @@ export async function POST(req: NextRequest) {
 
 	const admin = createAdminClient();
 	const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: !!email_confirm });
-	if (error) {
-		// Map common Supabase auth errors to HTTP codes
-		const msg = (error.message || '').toLowerCase();
-		const status =
-			msg.includes('already registered') || msg.includes('user already') || msg.includes('duplicate')
-				? 409
-			: msg.includes('invalid') || msg.includes('password') || msg.includes('schema')
-				? 422
-			: 400;
-		return NextResponse.json({ error: error.message }, { status });
-	}
+	if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
 	return NextResponse.json(data);
 }
@@ -74,26 +64,5 @@ export async function DELETE(req: NextRequest) {
 	if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
 	return new NextResponse(null, { status: 204 });
-}
-
-export async function PATCH(req: NextRequest) {
-  const guard = await requireAdmin();
-  if (!guard.ok) return NextResponse.json({ error: 'Forbidden' }, { status: guard.status });
-
-  const body = await req.json().catch(() => ({}));
-  const { userId, password } = body ?? {};
-  if (!userId || !password) {
-    return NextResponse.json({ error: 'userId and password are required' }, { status: 400 });
-  }
-
-  const admin = createAdminClient();
-  const { error } = await admin.auth.admin.updateUserById(userId, { password });
-  if (error) {
-    const msg = (error.message || '').toLowerCase();
-    const status = msg.includes('invalid') || msg.includes('password') ? 422 : 400;
-    return NextResponse.json({ error: error.message }, { status });
-  }
-
-  return NextResponse.json({ success: true });
 }
 
