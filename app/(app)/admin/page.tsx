@@ -74,11 +74,10 @@ export default function AdminPage() {
 
   const loadUsers = useCallback(async () => {
     try {
-      // Buscar usuários do auth.users junto com seus perfis
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
-      if (authError) throw authError;
+      const res = await fetch('/api/admin/users?page=1&perPage=200', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Falha ao buscar usuários');
+      const authUsers = await res.json();
 
-      // Buscar perfis dos usuários
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select(`
@@ -91,9 +90,8 @@ export default function AdminPage() {
         `);
       if (profilesError) throw profilesError;
 
-      // Combinar dados do auth com perfis
-      const usersWithProfiles = (authUsers?.users || []).map(authUser => {
-        const profile = profiles?.find(p => p.user_id === authUser.id);
+      const usersWithProfiles = (authUsers?.users || []).map((authUser: any) => {
+        const profile = profiles?.find((p: any) => p.user_id === authUser.id);
         return {
           id: authUser.id,
           email: authUser.email || '',
@@ -219,12 +217,17 @@ export default function AdminPage() {
     try {
       if (isNew) {
         // Criar usuário no auth
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: userData.email,
-          password: userData.password,
-          email_confirm: true
+        const res = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: userData.email,
+            password: userData.password,
+            email_confirm: true
+          })
         });
-        if (authError) throw authError;
+        if (!res.ok) throw new Error('Falha ao criar usuário');
+        const authData = await res.json();
 
         // Criar perfil do usuário
         const { error: profileError } = await supabase
@@ -263,8 +266,8 @@ export default function AdminPage() {
       if (profileError) throw profileError;
 
       // Excluir usuário do auth
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      if (authError) throw authError;
+      const res = await fetch(`/api/admin/users?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' });
+      if (!res.ok && res.status !== 204) throw new Error('Falha ao excluir usuário');
     } catch (err) {
       throw err;
     }
