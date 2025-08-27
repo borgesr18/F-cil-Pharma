@@ -240,7 +240,14 @@ export default function AdminPage() {
             email_confirm: true
           })
         });
-        if (!res.ok) throw new Error('Falha ao criar usuário');
+        if (!res.ok) {
+          let message = 'Falha ao criar usuário';
+          try {
+            const err = await res.json();
+            if (err?.error) message = err.error;
+          } catch {}
+          throw new Error(message);
+        }
         const authData = await res.json();
 
         // Criar perfil do usuário
@@ -252,7 +259,12 @@ export default function AdminPage() {
             role: userData.role,
             room_id: userData.room_id || null
           });
-        if (profileError) throw profileError;
+        if (profileError) {
+          try {
+            await fetch(`/api/admin/users?userId=${encodeURIComponent(authData.user.id)}`, { method: 'DELETE' });
+          } catch {}
+          throw profileError;
+        }
       } else {
         // Atualizar apenas o perfil (não podemos alterar email no auth facilmente)
         const { error: profileError } = await supabase
