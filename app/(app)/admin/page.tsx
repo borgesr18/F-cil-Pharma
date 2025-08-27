@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
 
@@ -37,7 +37,7 @@ export default function AdminPage() {
   const [userLoading, setUserLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // Verificar sessão do usuário
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function AdminPage() {
     };
     
     checkUser();
-  }, []);
+  }, [supabase]);
 
   const loadData = useCallback(async () => {
     setLoading(true);

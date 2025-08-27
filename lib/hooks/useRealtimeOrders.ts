@@ -59,7 +59,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
   const loadOrders = useCallback(async () => {
     try {
       setError(null);
-      const { data, error: fetchError } = await supabase
+      const { data: rawOrders, error: fetchError } = await supabase
         .from('orders')
         .select(`
           *,
@@ -68,20 +68,49 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
             meds(name)
           ),
           high_alert_checks(
-            id, checker_id, checked_at, notes,
-            profiles(display_name)
-          ),
-          profiles(display_name)
+            id, checker_id, checked_at, notes
+          )
         `)
         .in('status', statusFilter)
         .order('created_at', { ascending: true });
 
       if (fetchError) throw fetchError;
-      
+
+      const userIds = new Set<string>();
+      (rawOrders || []).forEach((order: any) => {
+        if (order.assigned_to) userIds.add(order.assigned_to);
+        (order.high_alert_checks || []).forEach((check: any) => {
+          if (check.checker_id) userIds.add(check.checker_id);
+        });
+      });
+
+      let profileMap = new Map<string, string | null>();
+      if (userIds.size > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, display_name')
+          .in('user_id', Array.from(userIds));
+        if (profilesError) throw profilesError;
+        (profilesData || []).forEach((p: any) => {
+          profileMap.set(p.user_id, p.display_name);
+        });
+      }
+
+      const enrichedOrders: OrderWithItems[] = (rawOrders || []).map((order: any) => {
+        const enrichedChecks = (order.high_alert_checks || []).map((check: any) => ({
+          ...check,
+          profiles: { display_name: profileMap.get(check.checker_id) ?? null }
+        }));
+        const assignedProfile = order.assigned_to
+          ? { display_name: profileMap.get(order.assigned_to) ?? null }
+          : undefined;
+        return { ...order, high_alert_checks: enrichedChecks, profiles: assignedProfile } as OrderWithItems;
+      });
+
       const previousCount = orders.length;
-      const newCount = data?.length || 0;
-      
-      setOrders(data || []);
+      const newCount = enrichedOrders.length;
+
+      setOrders(enrichedOrders);
       lastFetchRef.current = Date.now();
       
       // Tocar som se houver novos pedidos
