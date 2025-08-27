@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Settings, AlertCircle, Building, Pill, Package, Users } from 'lucide-react';
 
 type Room = {
   id: number;
@@ -25,17 +25,30 @@ type Kit = {
   active: boolean;
 };
 
+type User = {
+  id: string;
+  email: string;
+  display_name: string | null;
+  role: 'nurse' | 'pharmacy' | 'admin' | 'auditor';
+  room_id: number | null;
+  room_name?: string;
+  created_at: string;
+};
+
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'rooms' | 'meds' | 'kits'>('rooms');
+  const [activeTab, setActiveTab] = useState<'rooms' | 'meds' | 'kits' | 'users'>('rooms');
   const [rooms, setRooms] = useState<Room[]>([]);
   const [meds, setMeds] = useState<Med[]>([]);
   const [kits, setKits] = useState<Kit[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [userLoading, setUserLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState<string>('all');
   
   const supabase = useMemo(() => createClient(), []);
 
@@ -57,6 +70,46 @@ export default function AdminPage() {
     };
     
     checkUser();
+  }, [supabase]);
+
+  const loadUsers = useCallback(async () => {
+    try {
+      // Buscar usuários do auth.users junto com seus perfis
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      if (authError) throw authError;
+
+      // Buscar perfis dos usuários
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          user_id,
+          role,
+          room_id,
+          display_name,
+          created_at,
+          rooms(name)
+        `);
+      if (profilesError) throw profilesError;
+
+      // Combinar dados do auth com perfis
+      const usersWithProfiles = authUsers.users.map(authUser => {
+        const profile = profiles?.find(p => p.user_id === authUser.id);
+        return {
+          id: authUser.id,
+          email: authUser.email || '',
+          display_name: profile?.display_name || null,
+          role: profile?.role || 'nurse',
+          room_id: profile?.room_id || null,
+          room_name: profile?.rooms?.[0]?.name || null,
+          created_at: authUser.created_at
+        };
+      });
+
+      setUsers(usersWithProfiles);
+    } catch (err) {
+      console.error('Erro ao carregar usuários:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao carregar usuários');
+    }
   }, [supabase]);
 
   const loadData = useCallback(async () => {
@@ -85,13 +138,15 @@ export default function AdminPage() {
           .order('name');
         if (error) throw error;
         setKits(data || []);
+      } else if (activeTab === 'users') {
+        await loadUsers();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
     } finally {
       setLoading(false);
     }
-  }, [activeTab, supabase]);
+  }, [activeTab, supabase, loadUsers]);
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -104,17 +159,25 @@ export default function AdminPage() {
     setError(null);
     
     try {
-      if (isNew) {
-        const { error } = await supabase
-          .from(activeTab)
-          .insert([item]);
-        if (error) throw error;
+      if (activeTab === 'users') {
+        if (isNew) {
+          await handleSaveUser(item, true);
+        } else {
+          await handleSaveUser(item, false);
+        }
       } else {
-        const { error } = await supabase
-          .from(activeTab)
-          .update(item)
-          .eq('id', item.id);
-        if (error) throw error;
+        if (isNew) {
+          const { error } = await supabase
+            .from(activeTab)
+            .insert([item]);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from(activeTab)
+            .update(item)
+            .eq('id', item.id);
+          if (error) throw error;
+        }
       }
       
       setEditingId(null);
@@ -127,24 +190,83 @@ export default function AdminPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number | string) => {
     if (!confirm('Tem certeza que deseja excluir este item?')) return;
     
     setLoading(true);
     setError(null);
     
     try {
-      const { error } = await supabase
-        .from(activeTab)
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+      if (activeTab === 'users') {
+        await handleDeleteUser(id as string);
+      } else {
+        const { error } = await supabase
+          .from(activeTab)
+          .delete()
+          .eq('id', id);
+        if (error) throw error;
+      }
       
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao excluir');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveUser = async (userData: any, isNew: boolean) => {
+    try {
+      if (isNew) {
+        // Criar usuário no auth
+        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+          email: userData.email,
+          password: userData.password,
+          email_confirm: true
+        });
+        if (authError) throw authError;
+
+        // Criar perfil do usuário
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: authData.user.id,
+            display_name: userData.display_name,
+            role: userData.role,
+            room_id: userData.room_id || null
+          });
+        if (profileError) throw profileError;
+      } else {
+        // Atualizar apenas o perfil (não podemos alterar email no auth facilmente)
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            display_name: userData.display_name,
+            role: userData.role,
+            room_id: userData.room_id || null
+          })
+          .eq('user_id', userData.id);
+        if (profileError) throw profileError;
+      }
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      // Excluir perfil primeiro
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', userId);
+      if (profileError) throw profileError;
+
+      // Excluir usuário do auth
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      if (authError) throw authError;
+    } catch (err) {
+      throw err;
     }
   };
 
@@ -353,6 +475,102 @@ export default function AdminPage() {
     </div>
   );
 
+  const renderUsersTable = () => {
+    const filteredUsers = users.filter(user => {
+      const matchesSearch = userSearchTerm === '' || 
+        user.display_name?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(userSearchTerm.toLowerCase());
+      const matchesRole = userRoleFilter === '' || user.role === userRoleFilter;
+      return matchesSearch && matchesRole;
+    });
+
+    return (
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-b border-gray-200">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Gerenciar Usuários</h2>
+              <p className="text-gray-600 text-sm mt-1">Configure os usuários do sistema</p>
+            </div>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="btn-primary flex items-center gap-2 px-6 py-3 text-sm font-semibold"
+            >
+              <Plus size={18} />
+              Novo Usuário
+            </button>
+          </div>
+          
+          {/* Filtros */}
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Buscar por nome ou email..."
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
+                className="input-field w-full"
+              />
+            </div>
+            <div className="w-48">
+              <select
+                value={userRoleFilter}
+                onChange={(e) => setUserRoleFilter(e.target.value)}
+                className="input-field w-full"
+              >
+                <option value="">Todos os roles</option>
+                <option value="admin">Admin</option>
+                <option value="nurse">Enfermeiro</option>
+                <option value="pharmacy">Farmácia</option>
+                <option value="auditor">Auditor</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nome</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Sala</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredUsers.map((user) => (
+                <UserRow
+                   key={user.id}
+                   user={user}
+                   rooms={rooms}
+                   isEditing={editingId === user.id}
+                   onEdit={() => setEditingId(user.id)}
+                   onSave={handleSaveUser}
+                   onCancel={() => setEditingId(null)}
+                   onDelete={() => handleDeleteUser(user.id)}
+                   loading={loading}
+                 />
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {showAddForm && (
+          <div className="p-8 border-t border-gray-200 bg-gray-50">
+            <AddUserForm
+               rooms={rooms}
+               onSave={handleSaveUser}
+               onCancel={() => setShowAddForm(false)}
+               loading={loading}
+             />
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -365,9 +583,17 @@ export default function AdminPage() {
             </div>
             <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 rounded-xl">
               <div className="text-white text-center">
-                <div className="text-2xl font-bold">{activeTab === 'rooms' ? rooms.length : activeTab === 'meds' ? meds.length : kits.length}</div>
+                <div className="text-2xl font-bold">
+                  {activeTab === 'rooms' ? rooms.length : 
+                   activeTab === 'meds' ? meds.length : 
+                   activeTab === 'kits' ? kits.length : 
+                   users.length}
+                </div>
                 <div className="text-sm opacity-90">
-                  {activeTab === 'rooms' ? 'Salas' : activeTab === 'meds' ? 'Medicamentos' : 'Kits'}
+                  {activeTab === 'rooms' ? 'Salas' : 
+                   activeTab === 'meds' ? 'Medicamentos' : 
+                   activeTab === 'kits' ? 'Kits' : 
+                   'Usuários'}
                 </div>
               </div>
             </div>
@@ -388,7 +614,7 @@ export default function AdminPage() {
         {/* Navigation Tabs */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
           <nav className="flex">
-            {(['rooms', 'meds', 'kits'] as const).map((tab) => (
+            {(['rooms', 'meds', 'kits', 'users'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => {
@@ -396,13 +622,20 @@ export default function AdminPage() {
                   setEditingId(null);
                   setShowAddForm(false);
                 }}
-                className={`flex-1 py-4 px-6 font-semibold text-sm transition-all duration-200 ${
+                className={`flex-1 py-4 px-6 font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
                   activeTab === tab
                     ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
-                {tab === 'rooms' ? 'Salas' : tab === 'meds' ? 'Medicamentos' : 'Kits'}
+                {tab === 'rooms' && <Building size={18} />}
+                {tab === 'meds' && <Pill size={18} />}
+                {tab === 'kits' && <Package size={18} />}
+                {tab === 'users' && <Users size={18} />}
+                {tab === 'rooms' ? 'Salas' : 
+                 tab === 'meds' ? 'Medicamentos' : 
+                 tab === 'kits' ? 'Kits' : 
+                 'Usuários'}
               </button>
             ))}
           </nav>
@@ -422,6 +655,7 @@ export default function AdminPage() {
             {activeTab === 'rooms' && renderRoomsTable()}
             {activeTab === 'meds' && renderMedsTable()}
             {activeTab === 'kits' && renderKitsTable()}
+            {activeTab === 'users' && renderUsersTable()}
           </div>
         )}
       </div>
@@ -933,6 +1167,242 @@ function AddKitForm({ onSave, onCancel, loading }: any) {
             className="btn-primary flex-1 disabled:opacity-50"
           >
             {loading ? 'Salvando...' : 'Salvar Kit'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="btn-secondary px-6"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function UserRow({ user, rooms, isEditing, onEdit, onSave, onCancel, onDelete, loading }: any) {
+  const [editData, setEditData] = useState(user);
+  
+  if (isEditing) {
+    return (
+      <tr className="bg-blue-50 border-l-4 border-blue-500">
+        <td className="px-6 py-4">
+          <input
+            type="text"
+            value={editData.display_name || ''}
+            onChange={(e) => setEditData({ ...editData, display_name: e.target.value })}
+            className="input-field w-full"
+            placeholder="Nome de exibição"
+          />
+        </td>
+        <td className="px-6 py-4">
+          <input
+            type="email"
+            value={editData.email}
+            onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+            className="input-field w-full"
+            placeholder="Email"
+            disabled
+          />
+        </td>
+        <td className="px-6 py-4">
+          <select
+            value={editData.role}
+            onChange={(e) => setEditData({ ...editData, role: e.target.value })}
+            className="input-field"
+          >
+            <option value="nurse">Enfermeiro</option>
+            <option value="pharmacy">Farmácia</option>
+            <option value="admin">Admin</option>
+            <option value="auditor">Auditor</option>
+          </select>
+        </td>
+        <td className="px-6 py-4">
+          <select
+            value={editData.room_id || ''}
+            onChange={(e) => setEditData({ ...editData, room_id: e.target.value ? parseInt(e.target.value) : null })}
+            className="input-field"
+          >
+            <option value="">Nenhuma sala</option>
+            {rooms.map((room: any) => (
+              <option key={room.id} value={room.id}>{room.name}</option>
+            ))}
+          </select>
+        </td>
+        <td className="px-6 py-4">
+          <div className="flex gap-2">
+            <button
+              onClick={() => onSave(editData)}
+              disabled={loading}
+              className="btn-success p-2 disabled:opacity-50"
+              title="Salvar"
+            >
+              <Save size={16} />
+            </button>
+            <button
+              onClick={onCancel}
+              disabled={loading}
+              className="btn-secondary p-2 disabled:opacity-50"
+              title="Cancelar"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+  
+  return (
+    <tr className="hover:bg-gray-50 transition-colors duration-200">
+      <td className="px-6 py-4 text-sm text-gray-900 font-medium">{user.display_name || 'Sem nome'}</td>
+      <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
+      <td className="px-6 py-4">
+        <span className={`status-badge ${
+          user.role === 'admin' ? 'status-warning' :
+          user.role === 'pharmacy' ? 'status-active' :
+          user.role === 'auditor' ? 'status-neutral' :
+          'status-inactive'
+        }`}>
+          {user.role === 'admin' ? 'Admin' :
+           user.role === 'pharmacy' ? 'Farmácia' :
+           user.role === 'auditor' ? 'Auditor' :
+           'Enfermeiro'}
+        </span>
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-600">{user.room_name || 'Nenhuma'}</td>
+      <td className="px-6 py-4">
+        <div className="flex gap-2">
+          <button
+            onClick={onEdit}
+            disabled={loading}
+            className="btn-secondary p-2"
+            title="Editar"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button
+            onClick={onDelete}
+            disabled={loading}
+            className="btn-danger p-2"
+            title="Excluir"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function AddUserForm({ rooms, onSave, onCancel, loading }: any) {
+  const [formData, setFormData] = useState<{
+    email: string;
+    password: string;
+    display_name: string;
+    role: string;
+    room_id: number | null;
+  }>({ 
+    email: '', 
+    password: '', 
+    display_name: '', 
+    role: 'nurse', 
+    room_id: null 
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData, true);
+  };
+  
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-blue-100 rounded-lg">
+          <Plus size={20} className="text-blue-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">Adicionar Novo Usuário</h3>
+          <p className="text-sm text-gray-600">Configure um novo usuário no sistema</p>
+        </div>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="input-field w-full"
+              placeholder="usuario@exemplo.com"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Senha</label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="input-field w-full"
+              placeholder="Senha temporária"
+              required
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Nome de Exibição</label>
+            <input
+              type="text"
+              value={formData.display_name}
+              onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+              className="input-field w-full"
+              placeholder="Nome completo"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Role</label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              className="input-field w-full"
+            >
+              <option value="nurse">Enfermeiro</option>
+              <option value="pharmacy">Farmácia</option>
+              <option value="admin">Admin</option>
+              <option value="auditor">Auditor</option>
+            </select>
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Sala</label>
+          <select
+            value={formData.room_id || ''}
+            onChange={(e) => setFormData({ ...formData, room_id: e.target.value ? parseInt(e.target.value) : null })}
+            className="input-field"
+          >
+            <option value="">Nenhuma sala</option>
+            {rooms.map((room: any) => (
+              <option key={room.id} value={room.id}>{room.name}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="flex gap-3 pt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary flex-1 disabled:opacity-50"
+          >
+            {loading ? 'Salvando...' : 'Salvar Usuário'}
           </button>
           <button
             type="button"
