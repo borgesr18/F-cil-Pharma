@@ -106,13 +106,22 @@ export default function AdminPage() {
 
       const usersWithProfiles = (authUsers?.users || []).map((authUser: any) => {
         const profile = profiles?.find((p: any) => p.user_id === authUser.id);
+        // Extrair nome da sala com segurança independente do formato retornado (objeto ou array)
+        let roomName: string | null = null;
+        const embeddedRooms = (profile as any)?.rooms;
+        if (Array.isArray(embeddedRooms)) {
+          roomName = embeddedRooms[0]?.name ?? null;
+        } else if (embeddedRooms && typeof embeddedRooms === 'object') {
+          roomName = (embeddedRooms as any)?.name ?? null;
+        }
+
         return {
           id: authUser.id,
           email: authUser.email || '',
           display_name: profile?.display_name || null,
           role: profile?.role || 'nurse',
           room_id: profile?.room_id || null,
-          room_name: profile?.rooms?.[0]?.name || null,
+          room_name: roomName,
           created_at: authUser.created_at
         };
       });
@@ -596,7 +605,7 @@ export default function AdminPage() {
                    rooms={rooms}
                    isEditing={editingId === user.id}
                    onEdit={() => setEditingId(user.id)}
-                   onSave={handleSaveUser}
+                   onSave={handleSave}
                    onCancel={() => setEditingId(null)}
                    onDelete={() => handleDeleteUser(user.id)}
                    loading={loading}
@@ -610,7 +619,7 @@ export default function AdminPage() {
           <div className="p-8 border-t border-gray-200 bg-gray-50">
             <AddUserForm
                rooms={rooms}
-               onSave={handleSaveUser}
+               onSave={handleSave}
                onCancel={() => setShowAddForm(false)}
                loading={loading}
              />
