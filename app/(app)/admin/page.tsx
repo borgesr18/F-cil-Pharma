@@ -47,20 +47,34 @@ export default function AdminPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [userLoading, setUserLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState<string>('all');
   
   const supabase = useMemo(() => createClient(), []);
 
-  // Verificar sessão do usuário
+  // Verificar sessão do usuário e seu perfil
   useEffect(() => {
     const checkUser = async () => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser();
         if (error) {
           console.error('Erro ao verificar usuário:', error);
-        } else {
+        } else if (user) {
           setUser(user);
+          
+          // Buscar perfil do usuário para verificar role
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role, display_name, room_id')
+            .eq('user_id', user.id)
+            .single();
+            
+          if (profileError) {
+            console.error('Erro ao buscar perfil:', profileError);
+          } else {
+            setUserProfile(profile);
+          }
         }
       } catch (err) {
         console.error('Erro ao verificar sessão:', err);
@@ -301,6 +315,27 @@ export default function AdminPage() {
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Fazer Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Verificar se usuário tem role de admin
+  if (userProfile && userProfile.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-red-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-red-200">
+          <div className="text-center space-y-4">
+            <div className="text-red-600 text-6xl">⚠️</div>
+            <h2 className="text-xl font-bold text-gray-900">Acesso Restrito</h2>
+            <p className="text-gray-600">Apenas administradores podem acessar esta página.</p>
+            <button 
+              onClick={() => window.location.href = '/dashboard'}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Voltar ao Dashboard
             </button>
           </div>
         </div>
