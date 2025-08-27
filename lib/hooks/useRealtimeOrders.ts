@@ -33,14 +33,14 @@ type OrderWithItems = {
 
 interface UseRealtimeOrdersOptions {
   statusFilter?: OrderStatus[];
-  pollingInterval?: number; // em ms, padrão 30s
+  pollingInterval?: number; // em ms, padrão 8s (fallback)
   enableFallback?: boolean;
 }
 
 export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
   const {
     statusFilter = ['submitted', 'picking', 'checking', 'ready', 'delivered'],
-    pollingInterval = 30000,
+    pollingInterval = 8000,
     enableFallback = true
   } = options;
 
@@ -54,6 +54,76 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastFetchRef = useRef<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Helper: ordenar pedidos por data de criação ascendente
+  const sortOrdersByCreatedAt = useCallback((list: OrderWithItems[]) => {
+    return [...list].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, []);
+
+  // Helper: buscar e enriquecer um único pedido por ID
+  const fetchAndEnrichOrderById = useCallback(async (orderId: number): Promise<OrderWithItems | null> => {
+    try {
+      const { data: rawOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items(
+            id, med_id, qty, unit, high_alert,
+            meds(name)
+          ),
+          high_alert_checks(
+            id, checker_id, checked_at, notes
+          )
+        `)
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError || !rawOrder) return null;
+
+      const userIds = new Set<string>();
+      if (rawOrder.assigned_to) userIds.add(rawOrder.assigned_to);
+      (rawOrder.high_alert_checks || []).forEach((check: any) => {
+        if (check.checker_id) userIds.add(check.checker_id);
+      });
+
+      let profileMap = new Map<string, string | null>();
+      if (userIds.size > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, display_name')
+          .in('user_id', Array.from(userIds));
+        (profilesData || []).forEach((p: any) => {
+          profileMap.set(p.user_id, p.display_name);
+        });
+      }
+
+      const enrichedChecks = (rawOrder.high_alert_checks || []).map((check: any) => ({
+        ...check,
+        profiles: { display_name: profileMap.get(check.checker_id) ?? null }
+      }));
+      const assignedProfile = rawOrder.assigned_to
+        ? { display_name: profileMap.get(rawOrder.assigned_to) ?? null }
+        : undefined;
+
+      return { ...rawOrder, high_alert_checks: enrichedChecks, profiles: assignedProfile } as OrderWithItems;
+    } catch {
+      return null;
+    }
+  }, [supabase]);
+
+  // Helper: inserir/atualizar pedido localmente
+  const upsertOrderLocally = useCallback((incoming: OrderWithItems) => {
+    setOrders(prev => {
+      const exists = prev.some(o => o.id === incoming.id);
+      const next = exists ? prev.map(o => (o.id === incoming.id ? { ...o, ...incoming } : o)) : [...prev, incoming];
+      return sortOrdersByCreatedAt(next);
+    });
+  }, [sortOrdersByCreatedAt]);
+
+  // Helper: remover pedido localmente
+  const removeOrderLocally = useCallback((orderId: number) => {
+    setOrders(prev => prev.filter(o => o.id !== orderId));
+  }, []);
 
   // Função para carregar pedidos
   const loadOrders = useCallback(async () => {
@@ -110,7 +180,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
       const previousCount = orders.length;
       const newCount = enrichedOrders.length;
 
-      setOrders(enrichedOrders);
+      setOrders(sortOrdersByCreatedAt(enrichedOrders));
       lastFetchRef.current = Date.now();
       
       // Tocar som se houver novos pedidos (inclui o primeiro)
@@ -124,7 +194,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, orders.length, supabase]);
+  }, [statusFilter, orders.length, supabase, sortOrdersByCreatedAt]);
 
   // Configurar polling como fallback
   const setupPolling = useCallback(() => {
@@ -160,23 +230,68 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
       .channel('orders_realtime')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'orders' },
-        (payload) => {
-          console.log('Realtime event:', payload.eventType);
-          loadOrders();
-          
-          // Tocar som para novos pedidos
-          if (payload.eventType === 'INSERT') {
-            audioRef.current?.play().catch(() => {});
+        async (payload: any) => {
+          try {
+            const eventType = payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE';
+            const newRow = payload.new as { id: number; status: OrderStatus; created_at: string } | null;
+            const oldRow = payload.old as { id: number; status: OrderStatus } | null;
+
+            if (eventType === 'INSERT' && newRow) {
+              if (statusFilter.includes(newRow.status)) {
+                const enriched = await fetchAndEnrichOrderById(newRow.id);
+                if (enriched) {
+                  upsertOrderLocally(enriched);
+                  audioRef.current?.play().catch(() => {});
+                } else {
+                  loadOrders();
+                }
+              }
+              return;
+            }
+
+            if (eventType === 'UPDATE' && newRow) {
+              const wasVisible = oldRow ? statusFilter.includes((oldRow as any).status) : false;
+              const isVisible = statusFilter.includes(newRow.status);
+              if (!wasVisible && isVisible) {
+                const enriched = await fetchAndEnrichOrderById(newRow.id);
+                if (enriched) upsertOrderLocally(enriched); else loadOrders();
+              } else if (wasVisible && !isVisible) {
+                removeOrderLocally(newRow.id);
+              } else if (isVisible) {
+                const enriched = await fetchAndEnrichOrderById(newRow.id);
+                if (enriched) upsertOrderLocally(enriched); else loadOrders();
+              }
+              return;
+            }
+
+            if (eventType === 'DELETE' && oldRow) {
+              removeOrderLocally(oldRow.id);
+              return;
+            }
+          } catch {
+            loadOrders();
           }
         }
       )
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'order_items' },
-        () => loadOrders()
+        async (payload: any) => {
+          const row = payload.new || payload.old;
+          const orderId = row?.order_id as number | undefined;
+          if (!orderId) return;
+          const enriched = await fetchAndEnrichOrderById(orderId);
+          if (enriched) upsertOrderLocally(enriched); else loadOrders();
+        }
       )
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'high_alert_checks' },
-        () => loadOrders()
+        async (payload: any) => {
+          const row = payload.new || payload.old;
+          const orderId = row?.order_id as number | undefined;
+          if (!orderId) return;
+          const enriched = await fetchAndEnrichOrderById(orderId);
+          if (enriched) upsertOrderLocally(enriched); else loadOrders();
+        }
       )
       .subscribe((status) => {
         console.log('Realtime status:', status);
