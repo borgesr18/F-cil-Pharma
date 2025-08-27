@@ -112,7 +112,7 @@ export default function AdminPage() {
           display_name: profile?.display_name || null,
           role: profile?.role || 'nurse',
           room_id: profile?.room_id || null,
-          room_name: profile?.rooms?.[0]?.name || null,
+          room_name: (profile as any)?.rooms?.name || null,
           created_at: authUser.created_at
         };
       });
@@ -151,6 +151,13 @@ export default function AdminPage() {
         if (error) throw error;
         setKits(data || []);
       } else if (activeTab === 'users') {
+        // Carregar salas também para edição de usuários
+        const { data: roomsData, error: roomsError } = await supabase
+          .from('rooms')
+          .select('*')
+          .order('name');
+        if (roomsError) throw roomsError;
+        setRooms(roomsData || []);
         await loadUsers();
       }
     } catch (err) {
@@ -783,6 +790,7 @@ function RoomRow({ room, isEditing, onEdit, onSave, onCancel, onDelete, loading 
           >
             <Edit2 size={16} />
           </button>
+          
           <button
             onClick={onDelete}
             disabled={loading}
@@ -1331,6 +1339,31 @@ function UserRow({ user, rooms, isEditing, onEdit, onSave, onCancel, onDelete, l
             title="Editar"
           >
             <Edit2 size={16} />
+          </button>
+          <button
+            onClick={async () => {
+              const newPass = prompt('Definir nova senha para o usuário:');
+              if (!newPass) return;
+              try {
+                const res = await fetch('/api/admin/users', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId: user.id, password: newPass })
+                });
+                if (!res.ok) {
+                  const data = await res.json().catch(() => ({}));
+                  throw new Error(data?.error || 'Falha ao definir senha');
+                }
+                alert('Senha atualizada com sucesso.');
+              } catch (err: any) {
+                alert(err?.message || 'Erro ao atualizar senha');
+              }
+            }}
+            disabled={loading}
+            className="btn-secondary p-2"
+            title="Definir senha"
+          >
+            <Settings size={16} />
           </button>
           <button
             onClick={onDelete}
