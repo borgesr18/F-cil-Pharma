@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOrderOperations } from '@/lib/hooks/useOrderOperations';
 import { useOrderSLA } from '@/lib/hooks/useSLA';
 import { useRealtimeOrders } from '@/lib/hooks/useRealtimeOrders';
@@ -50,6 +50,21 @@ export default function FarmaciaPage() {
     };
     const next = flow[current] ?? current;
     
+    // Se ainda estiver em 'submitted' e não tiver responsável, primeiro tentar assumir
+    if (current === 'submitted') {
+      const order = orders.find(o => o.id === id);
+      if (!order?.assigned_to) {
+        const claim = await claimOrder(id);
+        if (!claim.success) {
+          alert(claim.error || 'Erro ao assumir pedido');
+          return;
+        }
+        // Atualizar a lista após assumir para evitar transições inválidas
+        await refresh();
+        return;
+      }
+    }
+
     const result = await setOrderStatus(id, next, `Avanço automático: ${current} → ${next}`);
     
     if (!result.success) {
@@ -68,6 +83,8 @@ export default function FarmaciaPage() {
     const result = await claimOrder(id);
     if (!result.success) {
       alert(result.error || 'Erro ao assumir pedido');
+    } else {
+      await refresh();
     }
   }
 
@@ -113,6 +130,16 @@ export default function FarmaciaPage() {
       default: return 'Desconectado';
     }
   };
+
+  // Desbloquear áudio na primeira interação do usuário na página
+  useEffect(() => {
+    const handler = () => {
+      primeAudio();
+      window.removeEventListener('click', handler);
+    };
+    window.addEventListener('click', handler);
+    return () => window.removeEventListener('click', handler);
+  }, [primeAudio]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -297,9 +324,15 @@ function OrderCard({
   const sla = useOrderSLA(order.priority, order.created_at);
   
   const canAdvance = () => {
-    if (order.status === 'submitted') return true;
+    if (order.status === 'submitted') return Boolean(order.assigned_to);
     if (order.status === 'checking' && hasMAV && mavCheckCount < 2) return false;
     return true;
+  };
+
+  const advanceDisabledReason = () => {
+    if (order.status === 'submitted' && !order.assigned_to) return 'Assuma o pedido para avançar';
+    if (order.status === 'checking' && hasMAV && mavCheckCount < 2) return 'Dupla checagem MAV necessária';
+    return '';
   };
 
   return (
@@ -393,7 +426,7 @@ function OrderCard({
               ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm hover:shadow-md' 
               : 'bg-gray-200 text-gray-500 cursor-not-allowed'
           }`}
-          title={!canAdvance() ? 'Dupla checagem MAV necessária' : ''}
+          title={!canAdvance() ? advanceDisabledReason() : ''}
         >
           {loading ? (
             <div className="flex items-center justify-center gap-2">
