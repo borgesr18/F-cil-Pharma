@@ -20,6 +20,7 @@ let realtimeReturn: any = {
   connectionStatus: 'connected',
   refresh: jest.fn(),
   reconnect: jest.fn(),
+  primeAudio: jest.fn(),
   stats: { total: 0, withMAV: 0, assigned: 0 },
 };
 let operationsReturn: any = {
