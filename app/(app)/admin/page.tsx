@@ -1344,6 +1344,32 @@ function UserRow({ user, rooms, isEditing, onEdit, onSave, onCancel, onDelete, l
             <Edit2 size={16} />
           </button>
           <button
+            onClick={async () => {
+              const newPassword = prompt('Digite a nova senha para este usuário:');
+              if (!newPassword) return;
+              if (newPassword.length < 6) { alert('A senha deve ter pelo menos 6 caracteres.'); return; }
+              try {
+                const res = await fetch('/api/admin/users', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId: user.id, password: newPassword })
+                });
+                if (!res.ok) {
+                  const data = await res.json().catch(() => ({}));
+                  throw new Error(data.error || 'Falha ao atualizar senha');
+                }
+                alert('Senha atualizada com sucesso.');
+              } catch (err: any) {
+                alert('Erro ao atualizar senha: ' + (err?.message || 'Erro desconhecido'));
+              }
+            }}
+            disabled={loading}
+            className="btn-secondary p-2"
+            title="Resetar senha"
+          >
+            <Settings size={16} />
+          </button>
+          <button
             onClick={onDelete}
             disabled={loading}
             className="btn-danger p-2"

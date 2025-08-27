@@ -66,3 +66,20 @@ export async function DELETE(req: NextRequest) {
 	return new NextResponse(null, { status: 204 });
 }
 
+export async function PATCH(req: NextRequest) {
+	const guard = await requireAdmin();
+	if (!guard.ok) return NextResponse.json({ error: 'Forbidden' }, { status: guard.status });
+
+	const body = await req.json();
+	const { userId, password } = body ?? {};
+	if (!userId || !password) {
+		return NextResponse.json({ error: 'userId and password are required' }, { status: 400 });
+	}
+
+	const admin = createAdminClient();
+	const { data, error } = await admin.auth.admin.updateUserById(userId, { password });
+	if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+	return NextResponse.json({ user: data.user });
+}
+
