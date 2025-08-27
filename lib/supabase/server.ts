@@ -14,10 +14,20 @@ export function createServerSupabase() {
           return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: any) {
-          cookieStore.set({ name, value, ...options });
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {
+            // Ignore cookie setting errors in read-only contexts
+            console.warn('Cookie setting ignored in read-only context:', name);
+          }
         },
         remove(name: string, options: any) {
-          cookieStore.set({ name, value: '', ...options });
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch (error) {
+            // Ignore cookie removal errors in read-only contexts
+            console.warn('Cookie removal ignored in read-only context:', name);
+          }
         },
       },
     }
