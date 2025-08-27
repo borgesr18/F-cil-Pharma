@@ -21,6 +21,7 @@ jest.mock('@/lib/hooks/useRealtimeOrders', () => ({
     connectionStatus: 'connected',
     refresh: jest.fn(),
     reconnect: jest.fn(),
+    primeAudio: jest.fn(),
     stats: { total: 0, withMAV: 0, assigned: 0 }
   })
 }));

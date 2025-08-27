@@ -49,11 +49,13 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'fallback'>('disconnected');
   
-  const supabase = createClient();
+  // Manter uma instância estável do cliente Supabase durante todo o ciclo de vida do hook
+  const supabaseRef = useRef(createClient());
   const channelRef = useRef<any>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastFetchRef = useRef<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const previousCountRef = useRef<number>(0);
 
   // Helper: ordenar pedidos por data de criação ascendente
   const sortOrdersByCreatedAt = useCallback((list: OrderWithItems[]) => {
@@ -63,7 +65,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
   // Helper: buscar e enriquecer um único pedido por ID
   const fetchAndEnrichOrderById = useCallback(async (orderId: number): Promise<OrderWithItems | null> => {
     try {
-      const { data: rawOrder, error: fetchError } = await supabase
+      const { data: rawOrder, error: fetchError } = await supabaseRef.current
         .from('orders')
         .select(`
           *,
@@ -88,7 +90,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
 
       let profileMap = new Map<string, string | null>();
       if (userIds.size > 0) {
-        const { data: profilesData } = await supabase
+        const { data: profilesData } = await supabaseRef.current
           .from('profiles')
           .select('user_id, display_name')
           .in('user_id', Array.from(userIds));
@@ -109,7 +111,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
     } catch {
       return null;
     }
-  }, [supabase]);
+  }, []);
 
   // Helper: inserir/atualizar pedido localmente
   const upsertOrderLocally = useCallback((incoming: OrderWithItems) => {
@@ -129,7 +131,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
   const loadOrders = useCallback(async () => {
     try {
       setError(null);
-      const { data: rawOrders, error: fetchError } = await supabase
+      const { data: rawOrders, error: fetchError } = await supabaseRef.current
         .from('orders')
         .select(`
           *,
@@ -156,7 +158,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
 
       let profileMap = new Map<string, string | null>();
       if (userIds.size > 0) {
-        const { data: profilesData, error: profilesError } = await supabase
+        const { data: profilesData, error: profilesError } = await supabaseRef.current
           .from('profiles')
           .select('user_id, display_name')
           .in('user_id', Array.from(userIds));
@@ -177,11 +179,12 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
         return { ...order, high_alert_checks: enrichedChecks, profiles: assignedProfile } as OrderWithItems;
       });
 
-      const previousCount = orders.length;
+      const previousCount = previousCountRef.current;
       const newCount = enrichedOrders.length;
 
       setOrders(sortOrdersByCreatedAt(enrichedOrders));
       lastFetchRef.current = Date.now();
+      previousCountRef.current = newCount;
       
       // Tocar som se houver novos pedidos (inclui o primeiro)
       if (newCount > previousCount) {
@@ -194,7 +197,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, orders.length, supabase, sortOrdersByCreatedAt]);
+  }, [statusFilter, sortOrdersByCreatedAt]);
 
   // Configurar polling como fallback
   const setupPolling = useCallback(() => {
@@ -215,18 +218,18 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
   // Configurar realtime
   const setupRealtime = useCallback(() => {
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
+      supabaseRef.current.removeChannel(channelRef.current);
     }
 
     // Garantir conexão do cliente realtime e tentar reconectar proativamente
     try {
-      const realtimeClient: any = (supabase as any).realtime;
+      const realtimeClient: any = (supabaseRef.current as any).realtime;
       if (realtimeClient && typeof realtimeClient.connect === 'function') {
         realtimeClient.connect();
       }
     } catch {}
 
-    channelRef.current = supabase
+    channelRef.current = supabaseRef.current
       .channel('orders_realtime')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'orders' },
@@ -321,7 +324,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
           }, 1500);
         }
       });
-  }, [loadOrders, enableFallback, supabase, setupPolling]);
+  }, [loadOrders, enableFallback, setupPolling]);
 
   // Forçar refresh manual
   const refresh = useCallback(() => {
@@ -360,13 +363,13 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
     // Cleanup
     return () => {
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        supabaseRef.current.removeChannel(channelRef.current);
       }
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
       }
     };
-  }, [loadOrders, setupRealtime, supabase]);
+  }, [loadOrders, setupRealtime]);
 
   // Atualizar quando filtros mudarem
   useEffect(() => {
