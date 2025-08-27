@@ -34,8 +34,30 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [userLoading, setUserLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   
   const supabase = createClient();
+
+  // Verificar sessão do usuário
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error('Erro ao verificar usuário:', error);
+        } else {
+          setUser(user);
+        }
+      } catch (err) {
+        console.error('Erro ao verificar sessão:', err);
+      } finally {
+        setUserLoading(false);
+      }
+    };
+    
+    checkUser();
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -72,8 +94,10 @@ export default function AdminPage() {
   }, [activeTab, supabase]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!userLoading && user) {
+      loadData();
+    }
+  }, [loadData, userLoading, user]);
 
   const handleSave = async (item: any, isNew: boolean = false) => {
     setLoading(true);
@@ -123,6 +147,41 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
+
+  // Tela de carregamento enquanto verifica usuário
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="text-gray-600">Verificando autenticação...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Verificar se usuário está autenticado
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-red-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-red-200">
+          <div className="text-center space-y-4">
+            <div className="text-red-600 text-6xl">⚠️</div>
+            <h2 className="text-xl font-bold text-gray-900">Acesso Negado</h2>
+            <p className="text-gray-600">Você precisa estar logado para acessar esta página.</p>
+            <button 
+              onClick={() => window.location.href = '/signin'}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Fazer Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const renderRoomsTable = () => (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
@@ -809,7 +868,7 @@ function AddMedForm({ onSave, onCancel, loading }: any) {
 }
 
 function AddKitForm({ onSave, onCancel, loading }: any) {
-  const [formData, setFormData] = useState({ name: '', active: true });
+  const [formData, setFormData] = useState({ key: '', name: '', active: true });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -829,16 +888,30 @@ function AddKitForm({ onSave, onCancel, loading }: any) {
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Nome do Kit</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="input-field w-full"
-            placeholder="Ex: Kit Emergência, Kit Cirúrgico, etc."
-            required
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Chave do Kit</label>
+            <input
+              type="text"
+              value={formData.key}
+              onChange={(e) => setFormData({ ...formData, key: e.target.value.toUpperCase() })}
+              className="input-field w-full"
+              placeholder="Ex: KIT_EMERGENCIA, KIT_CIRURGICO"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Nome do Kit</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="input-field w-full"
+              placeholder="Ex: Kit Emergência, Kit Cirúrgico, etc."
+              required
+            />
+          </div>
         </div>
         
         <div>
