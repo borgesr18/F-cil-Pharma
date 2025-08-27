@@ -49,7 +49,7 @@ export default function AdminPage() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [userSearchTerm, setUserSearchTerm] = useState('');
-  const [userRoleFilter, setUserRoleFilter] = useState<string>('all');
+  const [userRoleFilter, setUserRoleFilter] = useState<string>('');
   
   const supabase = useMemo(() => createClient(), []);
 
