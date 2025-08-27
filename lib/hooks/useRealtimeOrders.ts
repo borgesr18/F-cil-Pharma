@@ -113,8 +113,8 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
       setOrders(enrichedOrders);
       lastFetchRef.current = Date.now();
       
-      // Tocar som se houver novos pedidos
-      if (newCount > previousCount && previousCount > 0) {
+      // Tocar som se houver novos pedidos (inclui o primeiro)
+      if (newCount > previousCount) {
         audioRef.current?.play().catch(() => {});
       }
       
