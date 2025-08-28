@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useOrderOperations } from '@/lib/hooks/useOrderOperations';
 import { useOrderSLA } from '@/lib/hooks/useSLA';
 import { useRealtimeOrders } from '@/lib/hooks/useRealtimeOrders';
+import { createClient } from '@/lib/supabase/client';
 import type { OrderStatus } from '@/lib/supabase/types';
 import { AlertTriangle, Clock, User, CheckCircle2, Wifi, WifiOff, RotateCcw, Volume2 } from 'lucide-react';
 
@@ -26,6 +27,7 @@ export default function FarmaciaPage() {
   const [mavCheckNotes, setMavCheckNotes] = useState<Record<number, string>>({});
   const [showMAVModal, setShowMAVModal] = useState<number | null>(null);
   const { setOrderStatus, claimOrder, addMAVCheck, loading, error } = useOrderOperations();
+  const supabase = createClient();
   
   // Função para testar o som manualmente
   const testSound = () => {
