@@ -4,7 +4,7 @@ import { useOrderOperations } from '@/lib/hooks/useOrderOperations';
 import { useOrderSLA } from '@/lib/hooks/useSLA';
 import { useRealtimeOrders } from '@/lib/hooks/useRealtimeOrders';
 import type { OrderStatus } from '@/lib/supabase/types';
-import { AlertTriangle, Clock, User, CheckCircle2, Wifi, WifiOff, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Clock, User, CheckCircle2, Wifi, WifiOff, RotateCcw, Volume2 } from 'lucide-react';
 
 const ORDERED: OrderStatus[] = ['submitted','picking','checking','ready','delivered'];
 
@@ -26,6 +26,16 @@ export default function FarmaciaPage() {
   const [mavCheckNotes, setMavCheckNotes] = useState<Record<number, string>>({});
   const [showMAVModal, setShowMAVModal] = useState<number | null>(null);
   const { setOrderStatus, claimOrder, addMAVCheck, loading, error } = useOrderOperations();
+  
+  // Função para testar o som manualmente
+  const testSound = () => {
+    console.log('🔊 [DEBUG] Teste manual de som iniciado...');
+    const audio = new Audio('/notify.wav');
+    audio.play().catch((error) => {
+      console.error('❌ [DEBUG] Erro no teste manual de som:', error);
+      alert('Erro ao reproduzir som: ' + error.message);
+    });
+  };
   const { 
     orders, 
     loading: ordersLoading, 
@@ -131,6 +141,26 @@ export default function FarmaciaPage() {
     }
   };
 
+  // Estado para debug de eventos realtime
+  const [realtimeEvents, setRealtimeEvents] = useState<Array<{timestamp: string, event: string, data: any}>>([]);
+  
+  // Adicionar listener para eventos de debug do realtime
+  useEffect(() => {
+    const handleRealtimeEvent = (event: CustomEvent) => {
+      setRealtimeEvents(prev => [
+        ...prev.slice(-9), // Manter apenas os últimos 10 eventos
+        {
+          timestamp: new Date().toLocaleTimeString(),
+          event: event.detail.type,
+          data: event.detail.data
+        }
+      ]);
+    };
+    
+    window.addEventListener('realtime-debug', handleRealtimeEvent as EventListener);
+    return () => window.removeEventListener('realtime-debug', handleRealtimeEvent as EventListener);
+  }, []);
+
   // Desbloquear áudio na primeira interação do usuário na página
   useEffect(() => {
     const handler = () => {
@@ -161,14 +191,24 @@ export default function FarmaciaPage() {
                   {getConnectionText()}
                 </span>
               </div>
-              {connectionStatus === 'disconnected' && (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={reconnect}
-                  className="btn-primary text-sm px-4 py-2"
+                  onClick={testSound}
+                  className="btn-secondary text-sm px-3 py-2 flex items-center gap-2"
+                  title="Testar som de notificação"
                 >
-                  Reconectar
+                  <Volume2 size={16} />
+                  Testar Som
                 </button>
-              )}
+                {connectionStatus === 'disconnected' && (
+                  <button
+                    onClick={reconnect}
+                    className="btn-primary text-sm px-4 py-2"
+                  >
+                    Reconectar
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -192,6 +232,25 @@ export default function FarmaciaPage() {
             <div className="text-sm font-medium text-gray-700 mt-1">Ativos</div>
           </div>
         </div>
+
+        {/* Debug de Eventos Realtime */}
+        {realtimeEvents.length > 0 && (
+          <div className="bg-gray-900 text-green-400 rounded-lg p-4 mb-6 font-mono text-xs">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="font-semibold">Debug Realtime Events</span>
+            </div>
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {realtimeEvents.map((event, index) => (
+                <div key={index} className="text-xs">
+                  <span className="text-gray-400">[{event.timestamp}]</span>
+                  <span className="text-yellow-400 ml-2">{event.event}</span>
+                  <span className="text-green-400 ml-2">{JSON.stringify(event.data)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Controles */}
         <div className="flex justify-between items-center">

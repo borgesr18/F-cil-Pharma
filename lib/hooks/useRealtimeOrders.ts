@@ -129,6 +129,8 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
 
   // Função para carregar pedidos
   const loadOrders = useCallback(async () => {
+    console.log('📥 [DEBUG] Carregando pedidos com filtro:', statusFilter);
+    
     try {
       setError(null);
       const { data: rawOrders, error: fetchError } = await supabaseRef.current
@@ -145,6 +147,8 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
         `)
         .in('status', statusFilter)
         .order('created_at', { ascending: true });
+        
+      console.log('📊 [DEBUG] Resultado da busca:', { rawOrders: rawOrders?.length || 0, fetchError });
 
       if (fetchError) throw fetchError;
 
@@ -182,20 +186,32 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
       const previousCount = previousCountRef.current;
       const newCount = enrichedOrders.length;
 
+      console.log('📈 [DEBUG] Contagem de pedidos:', { previousCount, newCount, enrichedOrders: enrichedOrders.length });
+
       setOrders(sortOrdersByCreatedAt(enrichedOrders));
       lastFetchRef.current = Date.now();
       previousCountRef.current = newCount;
       
       // Tocar som se houver novos pedidos (inclui o primeiro)
       if (newCount > previousCount) {
-        audioRef.current?.play().catch(() => {});
+        console.log('🔊 [DEBUG] Novos pedidos detectados, reproduzindo áudio...');
+        if (audioRef.current) {
+          audioRef.current.play().catch((error) => {
+            console.error('❌ [DEBUG] Erro ao reproduzir áudio no loadOrders:', error);
+          });
+        } else {
+          console.warn('⚠️ [DEBUG] Elemento de áudio não encontrado no loadOrders!');
+        }
+      } else {
+        console.log('📊 [DEBUG] Nenhum novo pedido detectado');
       }
       
     } catch (err) {
-      console.error('Erro ao carregar pedidos:', err);
+      console.error('❌ [DEBUG] Erro ao carregar pedidos:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
     } finally {
       setLoading(false);
+      console.log('✅ [DEBUG] Carregamento de pedidos finalizado');
     }
   }, [statusFilter, sortOrdersByCreatedAt]);
 
@@ -217,7 +233,10 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
 
   // Configurar realtime
   const setupRealtime = useCallback(() => {
+    console.log('🔄 [DEBUG] Configurando realtime...');
+    
     if (channelRef.current) {
+      console.log('🗑️ [DEBUG] Removendo canal anterior');
       supabaseRef.current.removeChannel(channelRef.current);
     }
 
@@ -225,29 +244,119 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
     try {
       const realtimeClient: any = (supabaseRef.current as any).realtime;
       if (realtimeClient && typeof realtimeClient.connect === 'function') {
+        console.log('🔌 [DEBUG] Conectando cliente realtime...');
         realtimeClient.connect();
+      } else {
+        console.warn('⚠️ [DEBUG] Cliente realtime não disponível');
       }
-    } catch {}
+    } catch (error) {
+      console.error('❌ [DEBUG] Erro ao conectar realtime:', error);
+    }
 
+    console.log('📡 [DEBUG] Criando canal realtime: orders_realtime');
+    
     channelRef.current = supabaseRef.current
       .channel('orders_realtime')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'orders' },
         async (payload: any) => {
+          console.log('📨 [DEBUG] Evento recebido na tabela orders:', payload);
+          
           try {
             const eventType = payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE';
             const newRow = payload.new as { id: number; status: OrderStatus; created_at: string } | null;
             const oldRow = payload.old as { id: number; status: OrderStatus } | null;
 
+            console.log(`🔍 [DEBUG] Processando evento ${eventType}:`, { newRow, oldRow, statusFilter });
+            
+            // Emitir evento de debug personalizado
+            window.dispatchEvent(new CustomEvent('realtime-debug', {
+              detail: {
+                type: `postgres_${eventType.toLowerCase()}`,
+                data: { table: 'orders', newRow, oldRow, statusFilter }
+              }
+            }));
+
             if (eventType === 'INSERT' && newRow) {
+              console.log(`➕ [DEBUG] Novo pedido inserido - ID: ${newRow.id}, Status: ${newRow.status}`);
+              
+              // Emitir evento específico de novo pedido
+              window.dispatchEvent(new CustomEvent('realtime-debug', {
+                detail: {
+                  type: 'new_order_detected',
+                  data: { orderId: newRow.id, status: newRow.status, inFilter: statusFilter.includes(newRow.status) }
+                }
+              }));
+              
               if (statusFilter.includes(newRow.status)) {
+                console.log('✅ [DEBUG] Status do pedido está no filtro, buscando dados completos...');
+                
                 const enriched = await fetchAndEnrichOrderById(newRow.id);
                 if (enriched) {
+                  console.log('📦 [DEBUG] Pedido enriquecido com sucesso:', enriched);
                   upsertOrderLocally(enriched);
-                  audioRef.current?.play().catch(() => {});
+                  
+                  // Emitir evento de pedido adicionado
+                  window.dispatchEvent(new CustomEvent('realtime-debug', {
+                    detail: {
+                      type: 'order_added_to_list',
+                      data: { orderId: enriched.id, status: enriched.status }
+                    }
+                  }));
+                  
+                  console.log('🔊 [DEBUG] Tentando reproduzir áudio...');
+                  if (audioRef.current) {
+                    console.log('🎵 [DEBUG] Elemento de áudio encontrado, reproduzindo...');
+                    
+                    // Emitir evento de tentativa de áudio
+                    window.dispatchEvent(new CustomEvent('realtime-debug', {
+                      detail: {
+                        type: 'audio_play_attempt',
+                        data: { orderId: enriched.id }
+                      }
+                    }));
+                    
+                    audioRef.current.play().then(() => {
+                      // Emitir evento de sucesso do áudio
+                      window.dispatchEvent(new CustomEvent('realtime-debug', {
+                        detail: {
+                          type: 'audio_play_success',
+                          data: { orderId: enriched.id }
+                        }
+                      }));
+                    }).catch((error) => {
+                      console.error('❌ [DEBUG] Erro ao reproduzir áudio:', error);
+                      // Emitir evento de erro do áudio
+                      window.dispatchEvent(new CustomEvent('realtime-debug', {
+                        detail: {
+                          type: 'audio_play_error',
+                          data: { orderId: enriched.id, error: error.message }
+                        }
+                      }));
+                    });
+                  } else {
+                    console.warn('⚠️ [DEBUG] Elemento de áudio não encontrado!');
+                    // Emitir evento de áudio não encontrado
+                    window.dispatchEvent(new CustomEvent('realtime-debug', {
+                      detail: {
+                        type: 'audio_element_missing',
+                        data: { orderId: enriched.id }
+                      }
+                    }));
+                  }
                 } else {
+                  console.warn('⚠️ [DEBUG] Falha ao enriquecer pedido, recarregando lista completa...');
+                  // Emitir evento de falha no enriquecimento
+                  window.dispatchEvent(new CustomEvent('realtime-debug', {
+                    detail: {
+                      type: 'order_enrich_failed',
+                      data: { orderId: newRow.id }
+                    }
+                  }));
                   loadOrders();
                 }
+              } else {
+                console.log(`🚫 [DEBUG] Status '${newRow.status}' não está no filtro:`, statusFilter);
               }
               return;
             }
@@ -297,29 +406,71 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
         }
       )
       .subscribe((status) => {
-        console.log('Realtime status:', status);
+        console.log('🔗 [DEBUG] Status da conexão realtime:', status);
+        
+        // Emitir evento de debug para status da conexão
+        window.dispatchEvent(new CustomEvent('realtime-debug', {
+          detail: {
+            type: 'connection_status_change',
+            data: { status, timestamp: new Date().toISOString() }
+          }
+        }));
         
         if (status === 'SUBSCRIBED') {
+          console.log('✅ [DEBUG] Realtime conectado com sucesso!');
           setConnectionStatus('connected');
+          
+          // Emitir evento de conexão bem-sucedida
+          window.dispatchEvent(new CustomEvent('realtime-debug', {
+            detail: {
+              type: 'realtime_connected',
+              data: { timestamp: new Date().toISOString() }
+            }
+          }));
+          
           // Parar polling se realtime estiver funcionando
           if (pollingRef.current) {
+            console.log('⏹️ [DEBUG] Parando polling (realtime ativo)');
             clearInterval(pollingRef.current);
             pollingRef.current = null;
           }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('❌ [DEBUG] Erro na conexão realtime:', status);
           setConnectionStatus('disconnected');
+          
+          // Emitir evento de erro de conexão
+          window.dispatchEvent(new CustomEvent('realtime-debug', {
+            detail: {
+              type: 'realtime_connection_error',
+              data: { status, timestamp: new Date().toISOString() }
+            }
+          }));
+          
           // Iniciar fallback se habilitado
           if (enableFallback) {
+            console.log('🔄 [DEBUG] Iniciando polling como fallback...');
             setupPolling();
           }
         } else if (status === 'CLOSED') {
+          console.warn('⚠️ [DEBUG] Conexão realtime fechada');
           setConnectionStatus('disconnected');
+          
+          // Emitir evento de conexão fechada
+          window.dispatchEvent(new CustomEvent('realtime-debug', {
+            detail: {
+              type: 'realtime_connection_closed',
+              data: { timestamp: new Date().toISOString() }
+            }
+          }));
+          
           if (enableFallback) {
+            console.log('🔄 [DEBUG] Iniciando polling como fallback...');
             setupPolling();
           }
           // tentar re-assinar o canal após breve intervalo
           setTimeout(() => {
             if (!channelRef.current) return;
+            console.log('🔄 [DEBUG] Tentando reconectar realtime...');
             setupRealtime();
           }, 1500);
         }
@@ -350,13 +501,25 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
 
   // Inicialização
   useEffect(() => {
+    console.log('🚀 [DEBUG] Inicializando useRealtimeOrders...');
+    
     // Criar elemento de áudio
+    console.log('🎵 [DEBUG] Criando elemento de áudio...');
     audioRef.current = new Audio('/notify.wav');
     audioRef.current.preload = 'auto';
     
+    // Adicionar listeners de debug para o áudio
+    audioRef.current.addEventListener('loadstart', () => console.log('🎵 [DEBUG] Áudio: loadstart'));
+    audioRef.current.addEventListener('canplay', () => console.log('🎵 [DEBUG] Áudio: canplay'));
+    audioRef.current.addEventListener('error', (e) => console.error('❌ [DEBUG] Áudio: error', e));
+    audioRef.current.addEventListener('play', () => console.log('🎵 [DEBUG] Áudio: reproduzindo'));
+    audioRef.current.addEventListener('ended', () => console.log('🎵 [DEBUG] Áudio: finalizado'));
+    
+    console.log('📥 [DEBUG] Carregando dados iniciais...');
     // Carregar dados iniciais
     loadOrders();
     
+    console.log('📡 [DEBUG] Configurando realtime...');
     // Configurar realtime
     setupRealtime();
 
