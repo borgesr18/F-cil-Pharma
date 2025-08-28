@@ -307,6 +307,12 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
                   console.log('🔊 [DEBUG] Tentando reproduzir áudio...');
                   if (audioRef.current) {
                     console.log('🎵 [DEBUG] Elemento de áudio encontrado, reproduzindo...');
+                    console.log('🔊 [DEBUG] Estado do áudio:', {
+                      readyState: audioRef.current.readyState,
+                      paused: audioRef.current.paused,
+                      src: audioRef.current.src,
+                      volume: audioRef.current.volume
+                    });
                     
                     // Emitir evento de tentativa de áudio
                     window.dispatchEvent(new CustomEvent('realtime-debug', {
@@ -316,7 +322,9 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
                       }
                     }));
                     
+                    audioRef.current.currentTime = 0;
                     audioRef.current.play().then(() => {
+                      console.log('✅ [DEBUG] Som reproduzido com sucesso!');
                       // Emitir evento de sucesso do áudio
                       window.dispatchEvent(new CustomEvent('realtime-debug', {
                         detail: {
@@ -325,7 +333,15 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
                         }
                       }));
                     }).catch((error) => {
-                      console.error('❌ [DEBUG] Erro ao reproduzir áudio:', error);
+                      console.error('❌ [DEBUG] Erro ao reproduzir áudio:', {
+                        error: error.message,
+                        name: error.name,
+                        audioState: {
+                          readyState: audioRef.current?.readyState,
+                          networkState: audioRef.current?.networkState,
+                          error: audioRef.current?.error
+                        }
+                      });
                       // Emitir evento de erro do áudio
                       window.dispatchEvent(new CustomEvent('realtime-debug', {
                         detail: {
@@ -335,7 +351,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
                       }));
                     });
                   } else {
-                    console.warn('⚠️ [DEBUG] Elemento de áudio não encontrado!');
+                    console.error('❌ [DEBUG] audioRef.current é null!');
                     // Emitir evento de áudio não encontrado
                     window.dispatchEvent(new CustomEvent('realtime-debug', {
                       detail: {
@@ -406,7 +422,11 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
         }
       )
       .subscribe((status) => {
-        console.log('🔗 [DEBUG] Status da conexão realtime:', status);
+        console.log('🔗 [DEBUG] Status da conexão realtime:', {
+          status,
+          timestamp: new Date().toISOString(),
+          channelName: 'orders_realtime'
+        });
         
         // Emitir evento de debug para status da conexão
         window.dispatchEvent(new CustomEvent('realtime-debug', {
@@ -502,24 +522,39 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
   useEffect(() => {
     console.log('🚀 [DEBUG] Inicializando useRealtimeOrders...');
     
-    // Criar elemento de áudio
-    console.log('🎵 [DEBUG] Criando elemento de áudio...');
-    audioRef.current = new Audio('/notify.wav');
-    audioRef.current.preload = 'auto';
+    // Criar elemento de áudio para notify.wav
+    console.log('🔊 [DEBUG] Criando elemento de áudio...');
+    const audio = new Audio('/notify.wav');
+    audio.preload = 'auto';
+    audio.volume = 0.7;
     
-    // Adicionar listeners de debug para o áudio
-    audioRef.current.addEventListener('loadstart', () => console.log('🎵 [DEBUG] Áudio: loadstart'));
-    audioRef.current.addEventListener('canplay', () => console.log('🎵 [DEBUG] Áudio: canplay'));
-    audioRef.current.addEventListener('error', (e) => console.error('❌ [DEBUG] Áudio: error', e));
-    audioRef.current.addEventListener('play', () => console.log('🎵 [DEBUG] Áudio: reproduzindo'));
-    audioRef.current.addEventListener('ended', () => console.log('🎵 [DEBUG] Áudio: finalizado'));
+    // Adicionar listeners para debug
+    audio.addEventListener('loadstart', () => {
+      console.log('🔊 [DEBUG] Áudio: loadstart');
+    });
+    audio.addEventListener('loadeddata', () => {
+      console.log('🔊 [DEBUG] Áudio: loadeddata');
+    });
+    audio.addEventListener('canplay', () => {
+      console.log('🔊 [DEBUG] Áudio: canplay');
+    });
+    audio.addEventListener('error', (e) => {
+      console.error('🔊 [DEBUG] Áudio: erro ao carregar', e);
+    });
     
-    console.log('📥 [DEBUG] Carregando dados iniciais...');
+    audioRef.current = audio;
+    console.log('🔊 [DEBUG] Elemento de áudio criado:', {
+      src: audio.src,
+      volume: audio.volume,
+      preload: audio.preload
+    });
+    
     // Carregar dados iniciais
+    console.log('📊 [DEBUG] Carregando dados iniciais...');
     loadOrders();
     
-    console.log('📡 [DEBUG] Configurando realtime...');
     // Configurar realtime
+    console.log('📡 [DEBUG] Configurando realtime...');
     setupRealtime();
 
     // Capturar referência do supabase para cleanup
@@ -527,7 +562,9 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
 
     // Cleanup
     return () => {
+      console.log('🧹 [DEBUG] Limpando useRealtimeOrders...');
       if (channelRef.current) {
+        console.log('📡 [DEBUG] Desconectando canal realtime...');
         supabase.removeChannel(channelRef.current);
       }
       if (pollingRef.current) {

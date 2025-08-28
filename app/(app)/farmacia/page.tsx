@@ -200,6 +200,75 @@ export default function FarmaciaPage() {
                   <Volume2 size={16} />
                   Testar Som
                 </button>
+                <button
+                  onClick={async () => {
+                    console.log('🧪 [DEBUG] Criando pedido de teste...');
+                    try {
+                      const response = await fetch('/api/test-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ test: true })
+                      });
+                      const result = await response.json();
+                      if (result.success) {
+                        console.log('✅ [DEBUG] Pedido de teste criado:', result.orderId);
+                        alert('Pedido de teste criado com sucesso!');
+                      } else {
+                        console.error('❌ [DEBUG] Erro ao criar pedido de teste:', result.error);
+                        alert('Erro ao criar pedido de teste: ' + result.error);
+                      }
+                    } catch (error) {
+                      console.error('❌ [DEBUG] Erro na requisição:', error);
+                      alert('Erro na requisição: ' + error);
+                    }
+                  }}
+                  className="btn-primary text-sm px-3 py-2 flex items-center gap-2"
+                  title="Criar pedido de teste para verificar realtime"
+                >
+                  🧪 Teste Realtime
+                </button>
+                <button
+                  onClick={testSound}
+                  className="btn-secondary text-sm px-3 py-2 flex items-center gap-2"
+                  title="Testar som de notificação"
+                >
+                  <Volume2 size={16} />
+                  Testar Som
+                </button>
+                
+                {/* Botão de teste de realtime */}
+                <button
+                  onClick={async () => {
+                    console.log('🧪 [TEST] Iniciando teste de criação de pedido...')
+                    try {
+                      const { data, error } = await supabase
+                        .from('orders')
+                        .insert({
+                          room_id: 1, // Sala de exemplo
+                          status: 'submitted',
+                          priority: 'normal',
+                          notes: `Teste de realtime - ${new Date().toLocaleTimeString()}`
+                        })
+                        .select()
+                        .single()
+                      
+                      if (error) {
+                        console.error('❌ [TEST] Erro ao criar pedido:', error)
+                        alert('Erro ao criar pedido: ' + error.message)
+                      } else {
+                        console.log('✅ [TEST] Pedido criado com sucesso:', data)
+                        alert('Pedido de teste criado! ID: ' + data.id)
+                      }
+                    } catch (err) {
+                      console.error('❌ [TEST] Erro inesperado:', err)
+                      alert('Erro inesperado: ' + err)
+                    }
+                  }}
+                  className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                >
+                  🧪 Teste Realtime
+                </button>
+                
                 {connectionStatus === 'disconnected' && (
                   <button
                     onClick={reconnect}
