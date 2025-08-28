@@ -474,8 +474,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
             setupRealtime();
           }, 1500);
         }
-      });
-  }, [loadOrders, enableFallback, setupPolling]);
+      });  }, [loadOrders, enableFallback, setupPolling, fetchAndEnrichOrderById, removeOrderLocally, statusFilter, upsertOrderLocally]);
 
   // Forçar refresh manual
   const refresh = useCallback(() => {
@@ -523,10 +522,13 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
     // Configurar realtime
     setupRealtime();
 
+    // Capturar referência do supabase para cleanup
+    const supabase = supabaseRef.current;
+
     // Cleanup
     return () => {
       if (channelRef.current) {
-        supabaseRef.current.removeChannel(channelRef.current);
+        supabase.removeChannel(channelRef.current);
       }
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
